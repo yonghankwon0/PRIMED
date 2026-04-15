@@ -31,24 +31,24 @@ data/                     입력 데이터
 
 code/                     분석 코드
   rectal/                   직장암 데이터 분석
-    main.R                    Group LASSO 분석 (CD GL, C LASSO)
-    apply_primed_real_data.R  PRIMED 적용 (선형 산포)
-    apply_quadratic_primed_real_data.R  PRIMED 적용 (이차 산포)
-    make_scatter_consensus_disagreement.R  합의-불일치 산점도 생성
-    01_rectal_bootstrap_stability.R  부트스트랩 안정성 분석
+    01_cd_group_lasso.R       Group LASSO 분석 (CD GL, C LASSO)
+    02_primed_linear.R        PRIMED 적용 (선형 산포)
+    03_primed_quadratic.R     PRIMED 적용 (이차 산포)
+    04_bootstrap_stability.R  부트스트랩 안정성 분석
+    05_scatter_plot.R         합의-불일치 산점도 생성
 
   lidc/                     LIDC-IDRI 폐 결절 분석
-    03_extract_radiomics_parallel.py  PyRadiomics 특징 추출 (60-worker 병렬)
-    04_apply_primed.R         PRIMED 적용
-    06_cv10_evaluation_v2.R   10-fold nested CV 평가
-    02_lidc_bootstrap_stability.R  부트스트랩 안정성 분석
+    01_extract_radiomics.py   PyRadiomics 특징 추출 (60-worker 병렬)
+    02_apply_primed.R         PRIMED 적용
+    03_cv10_evaluation.R      10-fold nested CV 평가
+    04_bootstrap_stability.R  부트스트랩 안정성 분석
 
   simulation/               시뮬레이션 연구
-    sim_modified_primed_core.jl      PRIMED Julia 구현 (K<=50)
-    sim_modified_primed_core_highdim.jl  PRIMED Julia 구현 (K=100)
-    sim_full_single_job.R     단일 시뮬레이션 작업 (R wrapper)
-    sim_all_with_sd.R         결과 집계 스크립트
-    run_full_parallel.sh      병렬 실행 스크립트
+    01_primed_core.jl         PRIMED Julia 구현 (K<=50)
+    01_primed_core_highdim.jl PRIMED Julia 구현 (K=100)
+    02_run_single_job.R       단일 시뮬레이션 작업 (R wrapper)
+    03_run_parallel.sh        병렬 실행 스크립트
+    04_aggregate_results.R    결과 집계 스크립트
 
 results/                  분석 결과
   simulation/               시뮬레이션 결과

@@ -8,7 +8,7 @@
 #   - Proximal norm = sqrt(β² + γ²), threshold = η·λ·√2
 #   - Selection based on β_k ≠ 0 or γ_k ≠ 0
 #
-# Usage: julia --threads=auto sim_modified_primed_core.jl <data_csv> <result_csv> [n_folds]
+# Usage: julia --threads=auto 01_primed_core.jl <data_csv> <result_csv> [n_folds]
 # ============================================================
 
 using LinearAlgebra, Statistics, Random, Printf, DelimitedFiles

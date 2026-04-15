@@ -97,7 +97,7 @@ compute_auc <- function(y,p) {
 # ============================================================
 run_sim <- function(tag, K, alpha_true, beta_true, gamma_true,
                     beta0, tau, active, noise_idx=integer(0),
-                    julia_core="sim_modified_primed_core.jl") {
+                    julia_core="01_primed_core.jl") {
   inact <- setdiff(1:K, active)
   na_act <- length(active); ni <- length(inact)
   cat(sprintf("\n=== %s (K=%d, tau=%.1f) ===\n", tag, K, tau)); flush.console()
@@ -259,7 +259,7 @@ for (tau_val in c(0.3, 0.6, 0.9)) {
 # --- Sim 3: High-dimensional ---
 tau_val <- 0.3
 for (K_val in c(50, 100)) {
-  jcore <- if (K_val <= 50) "sim_modified_primed_core.jl" else "sim_modified_primed_core_highdim.jl"
+  jcore <- if (K_val <= 50) "01_primed_core.jl" else "01_primed_core_highdim.jl"
   for (snr_val in c(0.5, 1.0)) {
     for (dgp in c("DGP1", "DGP2")) {
       if (dgp == "DGP1") {

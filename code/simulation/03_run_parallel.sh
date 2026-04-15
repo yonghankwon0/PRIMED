@@ -22,7 +22,7 @@ START_TIME=$(date +%s)
 launch_job() {
     local job_id=$1
     echo "[$(date +%H:%M:%S)] Launching job $job_id/$TOTAL_JOBS"
-    Rscript sim_full_single_job.R "$job_id" "$JULIA_THREADS" \
+    Rscript 02_run_single_job.R "$job_id" "$JULIA_THREADS" \
         > "logs/full_job$(printf '%02d' $job_id).log" 2>&1 &
     PIDS+=($!)
     JOB_IDS+=($job_id)

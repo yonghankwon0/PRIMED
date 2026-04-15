@@ -1,5 +1,5 @@
 # Single-job runner for full simulation with SD
-# Usage: Rscript sim_full_single_job.R <job_id> [julia_threads]
+# Usage: Rscript 02_run_single_job.R <job_id> [julia_threads]
 args <- commandArgs(trailingOnly = TRUE)
 JOB_ID <- as.integer(args[1])
 JULIA_THREADS <- if (length(args) >= 2) as.integer(args[2]) else 8L
@@ -68,7 +68,7 @@ compute_auc <- function(y,p) {
 
 run_sim <- function(tag, K, alpha_true, beta_true, gamma_true,
                     beta0, tau, active, noise_idx=integer(0),
-                    julia_core="sim_modified_primed_core.jl") {
+                    julia_core="01_primed_core.jl") {
   inact<-setdiff(1:K,active); na_act<-length(active); ni<-length(inact)
   cat(sprintf("\n=== %s (K=%d, tau=%.1f) ===\n",tag,K,tau)); flush.console()
   all_data<-generate_data(n,K,B,alpha_true,beta_true,gamma_true,beta0,m=m,tau=tau,seed=2024)
@@ -203,7 +203,7 @@ for (tau_val in c(0.3, 0.6, 0.9)) {
       for (scen in c("S1", "S2")) {
         idx <- idx + 1
         jobs[[idx]] <- list(sim="tau", dgp=dgp, scenario=scen, tau=tau_val, snr=snr_val, K=20,
-                           julia_core="sim_modified_primed_core.jl")
+                           julia_core="01_primed_core.jl")
       }
     }
   }
@@ -215,7 +215,7 @@ for (K_val in c(50, 100)) {
     for (dgp in c("DGP1", "DGP2")) {
       for (scen in c("S1", "S2")) {
         idx <- idx + 1
-        jcore <- if(K_val<=50) "sim_modified_primed_core.jl" else "sim_modified_primed_core_highdim.jl"
+        jcore <- if(K_val<=50) "01_primed_core.jl" else "01_primed_core_highdim.jl"
         jobs[[idx]] <- list(sim="hdim", dgp=dgp, scenario=scen, tau=0.3, snr=snr_val, K=K_val,
                            julia_core=jcore)
       }
