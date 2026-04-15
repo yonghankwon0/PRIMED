@@ -1349,7 +1349,7 @@ Table~\ref{tab:continuous_measures} lists alternatives.
 \caption{Consensus and dispersion measures for continuous features}\label{tab:continuous_measures}
 \small
 \renewcommand{\arraystretch}{1.3}
-\begin{tabular*}{\textwidth}{@{\extracolsep\fill}llll}
+\begin{tabular*}{\textwidth}{@{\extracolsep\fill}l l p{0.32\textwidth} l}
 \toprule
 Type & Measure & Formula & Properties \\
 \midrule
@@ -1359,10 +1359,10 @@ Type & Measure & Formula & Properties \\
 & Trimmed mean & Mean after removing top/bottom $k$\% & Compromise \\
 \midrule
 \multirow{4}{*}{Dispersion}
-& Standard deviation (SD) & $\bigl[\frac{1}{R-1}\sum_{r=1}^R(X_r-\bar X)^2\bigr]^{1/2}$ & Default in PRIMED \\
+& SD & $\bigl[\frac{1}{R-1}\sum_{r=1}^R(X_r-\bar X)^2\bigr]^{1/2}$ & Default in PRIMED \\
 & Range & $\max_r X_r - \min_r X_r$ & Simple \\
-& Mean absolute deviation & $R^{-1}\sum_{r=1}^R |X_r - \bar X|$ & Robust to outliers \\
-& Coefficient of variation & $\mathrm{SD}/\bar X$ & Scale-invariant \\
+& Mean abs.\ deviation & $R^{-1}\sum_{r=1}^R |X_r - \bar X|$ & Robust to outliers \\
+& Coeff.\ of variation & $\mathrm{SD}/\bar X$ & Scale-invariant \\
 \botrule
 \end{tabular*}
 \end{table}
@@ -1395,7 +1395,7 @@ Table~\ref{tab:ordinal_summary} summarizes the available measures by scale lengt
 \caption{Available consensus and dispersion measures for ordinal features}\label{tab:ordinal_summary}
 \small
 \renewcommand{\arraystretch}{1.2}
-\begin{tabular*}{\textwidth}{@{\extracolsep\fill}llll}
+\begin{tabular*}{\textwidth}{@{\extracolsep\fill}ll l p{0.33\textwidth}}
 \toprule
 Scale & Consensus & Dispersion & Rationale \\
 \midrule
@@ -1441,16 +1441,16 @@ Table~\ref{tab:scale_summary} summarizes how PRIMED handles each measurement sca
 
 \begin{table}[h]
 \caption{Summary of consensus and dispersion measures by measurement scale}\label{tab:scale_summary}
-\small
+\footnotesize
 \renewcommand{\arraystretch}{1.3}
-\begin{tabular*}{\textwidth}{@{\extracolsep\fill}lllcc}
+\begin{tabular*}{\textwidth}{@{\extracolsep\fill}lll p{0.18\textwidth} l}
 \toprule
 Scale & Consensus & Dispersion & PRIMED penalty & Application \\
 \midrule
 Continuous & Mean & SD & Group $(\beta_k, \gamma_k)$ & LIDC-IDRI \\
 Ordinal & Mean & SD & Group $(\beta_k, \gamma_k)$ & Rectal \\
-Binary & Mean ($= p$) & Not applicable & LASSO ($\delta_k$) & Rectal \\
-Nominal ($\geq$3 cat.) & Mode & Entropy or Simpson's $D$ & Group $(\beta_k, \gamma_k)$ & --- \\
+Binary & Mean ($= p$) & N/A & LASSO ($\delta_k$) & Rectal \\
+Nominal ($\geq$3 cat.) & Mode & Entropy / Simpson's $D$ & Group $(\beta_k, \gamma_k)$ & --- \\
 \botrule
 \end{tabular*}
 \end{table}

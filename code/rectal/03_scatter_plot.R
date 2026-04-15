@@ -3,7 +3,11 @@
 # Output: fig_scatter_cd.pdf (for inclusion in manuscript)
 ################################################################################
 suppressPackageStartupMessages({
-  library(tidyverse)
+  library(ggplot2)
+  library(dplyr)
+  library(tidyr)
+  library(purrr)
+  library(forcats)
   library(readxl)
 })
 
@@ -25,16 +29,16 @@ ordinal_vars <- c("Pre_cT", "Pre_DWI", "Pre_ADC", "Post_cT", "Fibrosis_grading",
 
 # Labels matching paper (Table 6 order by |r|)
 var_labels <- c(
-  "Pre_DWI" = "F: Pre_DWI",
-  "Post_DWI" = "I: Post_DWI",
-  "Pre_ADC" = "G: Pre_ADC",
-  "ESGAR" = "A: ESGAR",
-  "Pre_cT" = "E: Pre_cT",
-  "Fibrosis_grading" = "B: Fibrosis",
-  "Post_ADC" = "J: Post_ADC",
-  "Post_restriction" = "K: Post_restr.",
-  "Post_cT" = "H: Post_cT",
-  "MERCURY" = "L: MERCURY"
+  "Pre_DWI" = "Pre_DWI",
+  "Post_DWI" = "Post_DWI",
+  "Pre_ADC" = "Pre_ADC",
+  "ESGAR" = "ESGAR",
+  "Pre_cT" = "Pre_cT",
+  "Fibrosis_grading" = "Fibrosis",
+  "Post_ADC" = "Post_ADC",
+  "Post_restriction" = "Post_restr.",
+  "Post_cT" = "Post_cT",
+  "MERCURY" = "MERCURY"
 )
 
 cd_data <- data_clean %>%
@@ -53,28 +57,27 @@ cd_data <- data_clean %>%
 plot_data <- map_dfr(ordinal_vars, function(v) {
   x <- cd_data[[paste0(v, "_cons")]]
   s <- cd_data[[paste0(v, "_disp")]]
-  r_val <- cor(x, s, use = "complete.obs")
-  ci <- cor.test(x, s)$conf.int
+  r2_lin  <- summary(lm(s ~ x))$r.squared
+  r2_quad <- summary(lm(s ~ x + I(x^2)))$r.squared
   label <- paste0(var_labels[v],
-                  "\n(r = ", sprintf("%+.2f", r_val),
-                  ", 95% CI: [", sprintf("%.2f", ci[1]), ", ", sprintf("%.2f", ci[2]), "])")
+                  "\n(lin R\u00b2=", sprintf("%.2f", r2_lin),
+                  ", quad R\u00b2=", sprintf("%.2f", r2_quad), ")")
   tibble(
     Consensus = x,
     Disagreement = s,
     Feature = label,
-    r = r_val,
-    abs_r = abs(r_val)
+    r2_quad = r2_quad
   )
 })
 
-# Order by |r| descending
+# Order by quadratic R² descending
 plot_data <- plot_data %>%
-  mutate(Feature = fct_reorder(Feature, -abs_r))
+  mutate(Feature = fct_reorder(Feature, -r2_quad))
 
 # ── Create scatter plot ───────────────────────────────────────
 p <- ggplot(plot_data, aes(x = Consensus, y = Disagreement)) +
   geom_point(alpha = 0.4, size = 1.2, color = "steelblue") +
-  geom_smooth(method = "lm", se = TRUE, color = "red3", linewidth = 0.7, alpha = 0.2) +
+  geom_smooth(method = "lm", formula = y ~ x + I(x^2), se = TRUE, color = "red3", linewidth = 0.7, alpha = 0.2) +
   facet_wrap(~ Feature, scales = "free", ncol = 5) +
   labs(
     x = expression(bar(X)[k] ~ "(consensus: mean across readers)"),
