@@ -39,10 +39,8 @@ data/*.xlsx
 *.pdf
 !figures/*.pdf
 
-# Paper (keep source, not compiled)
-paper/*.pdf
-paper/*.bbl
-paper/*_korean.*
+# Paper
+paper/
 
 # Logs
 *.log
