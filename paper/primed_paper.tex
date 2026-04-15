@@ -9,9 +9,6 @@
 \documentclass[referee,lineno,pdflatex,sn-vancouver-num]{sn-jnl}
 
 %%%% Standard Packages
-% === Modification marker (remove before final submission) ===
-\newcommand{\modified}[1]{{\color{blue}#1}}
-
 \usepackage{graphicx}%
 \usepackage{multirow}%
 \usepackage{amsmath,amssymb,amsfonts}%
@@ -29,8 +26,6 @@
 \usetikzlibrary{arrows.meta,positioning,calc,decorations.pathreplacing}%
 \usepackage{pgfplots}%
 \pgfplotsset{compat=1.18}%
-
-\raggedbottom
 
 \begin{document}
 
@@ -50,15 +45,15 @@
 %% Structured abstract for BMC   %%
 %%================================%%
 
-\abstract{\modified{\textbf{Background:} When multiple readers independently assess the same medical image, their interpretations frequently disagree. Conventional approaches treat this inter-reader variability as nuisance to be eliminated, yet it may carry predictive information. Existing methods for incorporating variability focus on single longitudinal biomarkers and do not address the high-dimensional, multivariate setting of multi-reader imaging data where variable selection is required.
+\abstract{\textbf{Background:} When multiple readers independently assess the same medical image, their interpretations frequently disagree. Conventional approaches treat this inter-reader variability as nuisance to be eliminated, yet it may carry predictive information. Existing methods for incorporating variability focus on single longitudinal biomarkers and do not address the high-dimensional, multivariate setting of multi-reader imaging data where variable selection is required.
 
 \textbf{Methods:} We propose PRIMED (Penalized Regularization for Integrated Multi-path Estimation with Dispersion), a joint loss framework that integrates three information channels: consensus (mean reader score), disagreement (standard deviation across readers), and the structural relationship between them. A dispersion model captures how each feature's consensus determines its disagreement, and only the residual disagreement (the component not explained by consensus) enters the outcome model. A group LASSO penalty on the outcome coefficients performs variable selection, while dispersion parameters remain unpenalized. Performance is evaluated through simulation studies and two applications: a multi-center, multi-reader MRI study of 149 rectal cancer patients (14 features, 5 readers) and the LIDC-IDRI lung nodule dataset (107 radiomics features, 1,390 nodules, 3--4 readers).
 
 \textbf{Results:} In simulations across multiple settings (varying signal-to-noise ratio, noise levels, and dimensionality up to 100 features), PRIMED consistently achieves the highest F1 score and AUC, with advantages driven primarily by higher positive predictive value. Variable selection stability, measured by the Jaccard index, is highest for PRIMED at all dimensionalities (e.g., 0.228 vs.\ 0.182 and 0.192 at 100 features). In the rectal cancer application, PRIMED selects features missed by competing methods. In the LIDC-IDRI application, PRIMED achieves comparable prediction (10-fold cross-validated AUC 0.900) with substantially higher selection stability (Jaccard 0.798 vs.\ 0.688 and 0.560).
 
-\textbf{Conclusions:} PRIMED provides a principled framework for exploiting inter-reader disagreement in multi-reader imaging studies. By jointly modeling the consensus--disagreement relationship and using residual disagreement as a predictor, it achieves superior variable selection with consistent stability across replications, while maintaining competitive prediction performance. Validation on two distinct imaging modalities (MRI and CT) and scales (14 to 107 features) confirms these advantages generalize across clinical settings.}}
+\textbf{Conclusions:} PRIMED provides a principled framework for exploiting inter-reader disagreement in multi-reader imaging studies. By jointly modeling the consensus--disagreement relationship and using residual disagreement as a predictor, it achieves superior variable selection with consistent stability across replications, while maintaining competitive prediction performance. Validation on two distinct imaging modalities (MRI and CT) and scales (14 to 107 features) confirms these advantages generalize across clinical settings.}
 
-\keywords{Multi-reader imaging, Variable selection, Group LASSO, Inter-reader disagreement, Consensus--disagreement framework, Rectal cancer, \modified{Radiomics, LIDC-IDRI, Lung nodule}}
+\keywords{Multi-reader imaging, Variable selection, Group LASSO, Inter-reader disagreement, Consensus--disagreement framework, Rectal cancer, Radiomics, LIDC-IDRI, Lung nodule}
 
 \maketitle
 
@@ -111,7 +106,7 @@ For each subject--feature pair, define the consensus (sample mean across readers
   \bar X_{ik} = \frac{1}{m}\sum_{j=1}^m x_{ijk}, \qquad
   S_{ik} = \left[\frac{1}{m-1}\sum_{j=1}^m (x_{ijk} - \bar X_{ik})^2\right]^{1/2}.
 \]
-\modified{If the number of readers varies across subjects (e.g., due to missing evaluations or, as in the LIDC-IDRI application, varying numbers of annotators per nodule), $m$ is replaced by the subject-specific count $m_i$ in the definitions above.}
+If the number of readers varies across subjects (e.g., due to missing evaluations or, as in the LIDC-IDRI application, varying numbers of annotators per nodule), $m$ is replaced by the subject-specific count $m_i$ in the definitions above.
 Let $Y_i \in \{0,1\}$ denote the binary outcome for subject $i$.
 The observed data thus consist of the consensus matrix $\bar X \in \mathbb{R}^{n \times K}$, the disagreement matrix $S \in \mathbb{R}^{n \times K}$, and the outcome vector $Y \in \{0,1\}^n$.
 
@@ -188,15 +183,15 @@ The penalized objective is
   \;+\; \lambda \sum_{k=1}^K \sqrt{\beta_k^2 + \gamma_k^2}.
 \end{equation}
 The penalty is a group LASSO norm applied to the outcome coefficients $(\beta_k, \gamma_k)$ for each feature $k$.
-\modified{The group structure ensures that each feature is evaluated holistically (considering both its consensus signal ($\beta_k$) and its residual disagreement signal ($\gamma_k$)), rather than allowing one channel to be selected in isolation, which could lead to the inclusion of features with a spurious consensus or disagreement effect.
-Since each group consistently contains two coefficients, group-specific weights (such as $\sqrt{p_g}$ scaling) are unnecessary and are omitted.}
+The group structure ensures that each feature is evaluated holistically (considering both its consensus signal ($\beta_k$) and its residual disagreement signal ($\gamma_k$)), rather than allowing one channel to be selected in isolation, which could lead to the inclusion of features with a spurious consensus or disagreement effect.
+Since each group consistently contains two coefficients, group-specific weights (such as $\sqrt{p_g}$ scaling) are unnecessary and are omitted.
 
 The intercepts $\alpha_{0k}$ and $\beta_0$ are unpenalized, as is standard.
-Crucially, the dispersion slopes $\alpha_k$ are also unpenalized: they are updated by gradient descent without \modified{penalty-induced} shrinkage.
+Crucially, the dispersion slopes $\alpha_k$ are also unpenalized: they are updated by gradient descent without penalty-induced shrinkage.
 Although $\alpha_k$ receives no penalty, it is \emph{not} estimated in a separate stage: because $\mathcal{L}_{\mathrm{out}}$ depends on $\alpha_k$ through $\tilde S_{ik}$, the gradient of the outcome loss with respect to $\alpha_k$ provides an additional update signal (see Section~\ref{sec:optimization}).
-This selective penalization ensures that the consensus--disagreement relationship is estimated without \modified{penalty-induced} bias regardless of outcome relevance, while variable selection is driven solely by the outcome coefficients $(\beta_k, \gamma_k)$.
+This selective penalization ensures that the consensus--disagreement relationship is estimated without penalty-induced bias regardless of outcome relevance, while variable selection is driven solely by the outcome coefficients $(\beta_k, \gamma_k)$.
 
-\modified{All predictors ($\bar X_k$ and $S_k$) are standardized to zero mean and unit variance within the training set prior to penalization, ensuring that the group LASSO penalty is applied on a common scale across features with different units.}
+All predictors ($\bar X_k$ and $S_k$) are standardized to zero mean and unit variance within the training set prior to penalization, ensuring that the group LASSO penalty is applied on a common scale across features with different units.
 
 Feature $k$ is selected if $\hat\beta_k \neq 0$ or $\hat\gamma_k \neq 0$.
 
@@ -237,7 +232,7 @@ The outcome coefficients $(\beta_k, \gamma_k)$ then receive a group-wise proxima
 \]
 where $(\tilde\beta_k, \tilde\gamma_k)$ denotes the post-gradient values.
 This proximal operator is the key mechanism that sets entire $(\beta_k, \gamma_k)$ pairs exactly to zero, producing group-wise sparsity.
-The dispersion coefficients $\alpha_k$ are never shrunk, ensuring that the consensus--disagreement relationship is estimated without \modified{penalty-induced} bias regardless of outcome relevance.
+The dispersion coefficients $\alpha_k$ are never shrunk, ensuring that the consensus--disagreement relationship is estimated without penalty-induced bias regardless of outcome relevance.
 
 Convergence is declared when the relative change in parameters falls below a tolerance $\epsilon = 10^{-6}$, or after a maximum of $10{,}000$ iterations.
 In practice, the step size $\eta = 0.005$ provides stable convergence across all settings examined.
@@ -246,14 +241,14 @@ We note that the joint objective~\eqref{eq:objective} is non-convex in $(\boldsy
 The objective is convex in $\boldsymbol{\alpha}$ with $(\boldsymbol{\beta}, \boldsymbol{\gamma})$ fixed, and convex in $(\boldsymbol{\beta}, \boldsymbol{\gamma})$ with $\boldsymbol{\alpha}$ fixed, so the proximal gradient algorithm converges to a stationary point but not necessarily a global minimum.
 In our experiments, convergence was robust to initialization and we did not observe sensitivity to local minima.
 
-\modified{A practical concern with non-convex objectives is that the regularization path may be non-monotone: decreasing $\lambda$ could, in principle, cause previously selected features to drop out, because the change in $\hat\alpha_k$ alters $\tilde S_{ik}$ and thereby reshapes the loss landscape.
+A practical concern with non-convex objectives is that the regularization path may be non-monotone: decreasing $\lambda$ could, in principle, cause previously selected features to drop out, because the change in $\hat\alpha_k$ alters $\tilde S_{ik}$ and thereby reshapes the loss landscape.
 In convex group LASSO, path monotonicity (the number of selected features increases as $\lambda$ decreases) is mathematically guaranteed; no such guarantee exists for PRIMED.
 To assess this empirically, we traced the full regularization path on the LIDC-IDRI dataset ($K = 107$), evaluating 50 log-spaced $\lambda$ values from $\lambda_{\max}$ (0 features selected) to $\lambda_{\max}/1000$ (all 107 features selected), each from a cold start (zero initialization).
 The path was strictly monotone: the number of selected features increased or remained constant at every step, with zero violations across 49 transitions.
 Figure~\ref{fig:path_mono} visualizes the result: the number of selected features increases smoothly from 0 (at $\lambda_{\max}$) to 107 (at $\lambda_{\max}/1000$), with no reversals.
-This suggests that, despite the theoretical non-convexity, the bilinear coupling between $\alpha_k$ and $\gamma_k$ does not disrupt path regularity in practice, likely because the dispersion model is well identified for most features and the coupling gradient produces only small perturbations around the OLS solution for $\alpha_k$.}
+This suggests that, despite the theoretical non-convexity, the bilinear coupling between $\alpha_k$ and $\gamma_k$ does not disrupt path regularity in practice, likely because the dispersion model is well identified for most features and the coupling gradient produces only small perturbations around the OLS solution for $\alpha_k$.
 
-\modified{
+
 \begin{figure}[h]
 \centering
 \includegraphics[width=0.75\textwidth]{fig_path_monotonicity.pdf}
@@ -261,7 +256,7 @@ This suggests that, despite the theoretical non-convexity, the bilinear coupling
 The number of selected features increases monotonically as $\lambda$ decreases, with zero violations across 49 transitions.
 Despite the non-convexity of the joint objective, the path exhibits the same monotone behavior as convex group LASSO.}\label{fig:path_mono}
 \end{figure}
-}
+
 
 %%-------------------------------------------------------------------
 \subsection{Coefficient interpretation}\label{sec:properties}
@@ -283,22 +278,22 @@ which decomposes the association of $\bar X_k$ with $Y$ (on the linear predictor
 \begin{equation}\label{eq:total_effect}
   \underbrace{\beta_k^{\mathrm{total}}}_{\text{total}} = \underbrace{\beta_k}_{\text{direct}} + \underbrace{\alpha_k \cdot \gamma_k}_{\text{indirect via disagreement}}.
 \end{equation}
-\modified{This decomposition is structurally similar in form to the total/direct/indirect effect partition used in mediation analysis, but it is applied here to the linear predictor of a penalized regression and does not carry a causal interpretation.
+This decomposition is structurally similar in form to the total/direct/indirect effect partition used in mediation analysis, but it is applied here to the linear predictor of a penalized regression and does not carry a causal interpretation.
 It serves as a bookkeeping device that clarifies how PRIMED's coefficient $\beta_k$ relates to the CD~GL coefficient $\beta_k^{\mathrm{CD}}$ and quantifies the extent to which the consensus--disagreement relationship ($\alpha_k$) mediates the association between $\bar X_k$ and $Y$ through the disagreement channel.
 
 When $|\hat\alpha_k|$ is large and $r(\bar X_k, S_k)$ is close to $\pm 1$, the residual $\tilde S_k$ contains little variance, which naturally limits the precision of $\hat\gamma_k$.
 This is not a deficiency of the method but rather an informative outcome: a near-deterministic consensus--disagreement relationship leaves little residual disagreement available to predict the outcome, and PRIMED correctly reflects this by yielding a small or zero $\hat\gamma_k$.
-The group selection decision remains unaffected, as it depends on the joint norm $\|(\hat\beta_k, \hat\gamma_k)\|_2$ rather than on the individual coefficients.}
+The group selection decision remains unaffected, as it depends on the joint norm $\|(\hat\beta_k, \hat\gamma_k)\|_2$ rather than on the individual coefficients.
 
 %%-------------------------------------------------------------------
 \subsection{Regularization path and cross-validation}\label{sec:lambda_cv}
 %%-------------------------------------------------------------------
 
-\modified{The regularization parameter $\lambda$ controls the sparsity of the solution: larger $\lambda$ sets more $(\beta_k, \gamma_k)$ pairs to zero.
+The regularization parameter $\lambda$ controls the sparsity of the solution: larger $\lambda$ sets more $(\beta_k, \gamma_k)$ pairs to zero.
 We construct a data-driven regularization path, analogous to the approach used in \texttt{glmnet} \cite{Friedman2010}.
 Let $\lambda_{\max}$ denote the smallest $\lambda$ for which all $(\beta_k, \gamma_k) = (0, 0)$, computed as the maximum group gradient norm at the intercept-only solution (see Appendix~\ref{secA_lambda} for derivation).
 A log-spaced grid of $L = 100$ values from $\lambda_{\max} \cdot \epsilon$ to $\lambda_{\max}$ adapts automatically to the scale of the data, avoiding sensitivity to a fixed grid specification.
-We use $\epsilon = 0.01$ in the simulations and $\epsilon = 0.001$ in the LIDC-IDRI application, where the larger feature space benefits from finer resolution at small $\lambda$ (see Appendix~\ref{secA_lambda}).}
+We use $\epsilon = 0.01$ in the simulations and $\epsilon = 0.001$ in the LIDC-IDRI application, where the larger feature space benefits from finer resolution at small $\lambda$ (see Appendix~\ref{secA_lambda}).
 
 The optimal $\lambda$ is selected by stratified five-fold cross-validation.
 The data are split into five folds, stratifying by $Y$ to maintain class balance.
@@ -318,27 +313,27 @@ The selected $\lambda^* = \arg\min_j \mathrm{CV}(\lambda_j)$, and the final mode
 Only the outcome deviance (not the dispersion loss) is used for $\lambda$ selection, because the penalty applies exclusively to $(\beta_k, \gamma_k)$.
 
 %%-------------------------------------------------------------------
-\modified{\subsection{Nonlinear dispersion model}\label{sec:nonlinear}}
+\subsection{Nonlinear dispersion model}\label{sec:nonlinear}
 %%-------------------------------------------------------------------
 
-\modified{The linear dispersion model $S_{ik} = \alpha_{0k} + \alpha_k \bar X_{ik} + \varepsilon_{ik}$ is the simplest choice, but the consensus--disagreement relationship need not be linear.
+The linear dispersion model $S_{ik} = \alpha_{0k} + \alpha_k \bar X_{ik} + \varepsilon_{ik}$ is the simplest choice, but the consensus--disagreement relationship need not be linear.
 On bounded ordinal scales, a boundary effect forces disagreement toward zero when the consensus is near either extreme, producing an inverted-U-shaped relationship that a linear model cannot capture \cite{Taylor1961,Taylor2019}.
 PRIMED accommodates nonlinear dispersion by replacing the linear model with a polynomial.
-In particular, a quadratic dispersion model}
+In particular, a quadratic dispersion model
 \begin{equation}\label{eq:quad_disp}
-  \modified{S_{ik} = \alpha_{0k} + \alpha_{1k} \bar X_{ik} + \alpha_{2k} \bar X_{ik}^2 + \varepsilon_{ik}}
+  S_{ik} = \alpha_{0k} + \alpha_{1k} \bar X_{ik} + \alpha_{2k} \bar X_{ik}^2 + \varepsilon_{ik}
 \end{equation}
-\modified{captures the inverted-U pattern with a single additional parameter per feature.
-The residual disagreement becomes $\tilde S_{ik} = S_{ik} - \alpha_{0k} - \alpha_{1k} \bar X_{ik} - \alpha_{2k} \bar X_{ik}^2$, and the coupling gradients from the outcome loss generalize naturally:}
+captures the inverted-U pattern with a single additional parameter per feature.
+The residual disagreement becomes $\tilde S_{ik} = S_{ik} - \alpha_{0k} - \alpha_{1k} \bar X_{ik} - \alpha_{2k} \bar X_{ik}^2$, and the coupling gradients from the outcome loss generalize naturally:
 \[
-  \modified{\frac{\partial \mathcal{L}_{\mathrm{out}}}{\partial \alpha_{1k}}
+  \frac{\partial \mathcal{L}_{\mathrm{out}}}{\partial \alpha_{1k}}
   = \frac{\gamma_k}{n\,\mathcal{L}_{\mathrm{out}}^0} \sum_{i=1}^n (p_i - Y_i)\,\bar X_{ik}, \qquad
   \frac{\partial \mathcal{L}_{\mathrm{out}}}{\partial \alpha_{2k}}
-  = \frac{\gamma_k}{n\,\mathcal{L}_{\mathrm{out}}^0} \sum_{i=1}^n (p_i - Y_i)\,\bar X_{ik}^2.}
+  = \frac{\gamma_k}{n\,\mathcal{L}_{\mathrm{out}}^0} \sum_{i=1}^n (p_i - Y_i)\,\bar X_{ik}^2.
 \]
-\modified{All other components of the framework (the outcome model, the group penalty on $(\beta_k, \gamma_k)$, and the proximal gradient algorithm) remain unchanged.
+All other components of the framework (the outcome model, the group penalty on $(\beta_k, \gamma_k)$, and the proximal gradient algorithm) remain unchanged.
 Both $\alpha_{1k}$ and $\alpha_{2k}$ are unpenalized, consistent with the selective penalization principle.
-In Section~\ref{sec:application} we compare the linear and quadratic dispersion models on the rectal cancer data.}
+In Section~\ref{sec:application} we compare the linear and quadratic dispersion models on the rectal cancer data.
 
 %%-------------------------------------------------------------------
 \subsection{Comparison methods}\label{sec:comparison}
@@ -470,7 +465,7 @@ At $\mathrm{SNR} = 1.0$ (S2), PRIMED achieves F1 of $.740$ versus $.704$ (CD~GL)
 \subsection{Sensitivity to subject-specific noise ($\tau$)}\label{sec:high_tau}
 %%-------------------------------------------------------------------
 
-Using the same $K = 20$ structure as Section~\ref{sec:noise_sim}, we vary $\tau \in \{0.3, 0.6, 0.9\}$ \modified{under all four DGP$\times$scenario combinations}.
+Using the same $K = 20$ structure as Section~\ref{sec:noise_sim}, we vary $\tau \in \{0.3, 0.6, 0.9\}$ under all four DGP$\times$scenario combinations.
 As $\tau$ increases, subject-specific noise $\varepsilon_{ik}$ dominates the dispersion channel: at $\tau = 0.9$, $\mathrm{Var}(\sigma_k)$ is roughly $11$ times its value at $\tau = 0.3$, making $S_k$ a much noisier proxy for $\sigma_{ik}$.
 The coefficient $c$ is recalibrated at each $(\tau, \mathrm{SNR})$ combination to hold SNR constant, so that any change in performance is due to $\tau$ rather than signal strength.
 
@@ -479,10 +474,10 @@ C~LASSO's F1 degrades sharply as $\tau$ increases: at $\mathrm{SNR} = 0.5$, F1 d
 PRIMED maintains competitive or highest F1 across $\tau$ levels (Figure~\ref{fig:tau_f1}).
 At $\mathrm{SNR} = 1.0$, PRIMED achieves F1 of $.717/.712/.700$ versus CD~GL's $.701/.681/.683$.
 
-\modified{Table~\ref{tab:high_tau_full} extends this analysis to all four DGP$\times$scenario combinations.
+Table~\ref{tab:high_tau_full} extends this analysis to all four DGP$\times$scenario combinations.
 Under DGP~1 (S1), the pattern mirrors S2 with slightly higher absolute F1 values.
 Under DGP~2 ($\gamma = 0$), PRIMED maintains the highest F1 at $\tau \leq 0.6$; at $\tau = 0.9$ with $\mathrm{SNR} = 0.5$, all methods perform similarly (F1 $\approx .55$--.59), reflecting the inherent difficulty of the regime.
-Notably, C~LASSO does not collapse under DGP~2 as it does under DGP~1, because the outcome signal resides entirely in the consensus channel when $\gamma = 0$.}
+Notably, C~LASSO does not collapse under DGP~2 as it does under DGP~1, because the outcome signal resides entirely in the consensus channel when $\gamma = 0$.
 
 \begin{table}[h]
 \caption{Sensitivity to $\tau$: DGP~1 ($\gamma \neq 0$, $K{=}20$, S2)}\label{tab:high_tau}
@@ -512,7 +507,7 @@ Notably, C~LASSO does not collapse under DGP~2 as it does under DGP~1, because t
 \footnotetext{Mean over $B = 50$ replications; best in bold. SD values available in Table~\ref{tab:high_tau_full}.}
 \end{table}
 
-\modified{
+
 \begin{table}[h]
 \caption{Sensitivity to $\tau$: all DGP$\times$scenario combinations ($K{=}20$)}\label{tab:high_tau_full}
 \footnotesize
@@ -548,34 +543,34 @@ Notably, C~LASSO does not collapse under DGP~2 as it does under DGP~1, because t
 \end{tabular*}
 \footnotetext{F1 scores (\textit{SD}); best in bold. DGP~1: $\alpha_k = \beta_k = \gamma_k = c$; DGP~2: $\alpha_k = \beta_k = c$, $\gamma_k = 0$. S1: no noise; S2: noise present. All values averaged over $B = 50$ replications.}
 \end{table}
-}
+
 
 
 %%-------------------------------------------------------------------
 \subsection{Increasing dimensionality ($K = 50, 100$)}\label{sec:highdim}
 %%-------------------------------------------------------------------
 
-\modified{We increase the number of features to $K = 50$ and $K = 100$, with $n = 200$, under both DGP~1 and DGP~2.}
+We increase the number of features to $K = 50$ and $K = 100$, with $n = 200$, under both DGP~1 and DGP~2.
 All other settings match Section~\ref{sec:noise_sim}: $\tau = 0.3$, $m = 5$, $B = 50$.
-\modified{The number of active and noise features is held fixed at 7 and 3, respectively; additional features beyond $K = 20$ are null ($\alpha_k = \beta_k = \gamma_k = 0$).}
+The number of active and noise features is held fixed at 7 and 3, respectively; additional features beyond $K = 20$ are null ($\alpha_k = \beta_k = \gamma_k = 0$).
 The coefficient $c$ and intercept $\beta_0$ are recalibrated for each SNR.
 
-Tables~\ref{tab:middim} and \ref{tab:highdim} report F1 and AUC \modified{for DGP~1}.
-\modified{PRIMED maintains a consistent AUC advantage across dimensionalities, though its F1 advantage is not strictly monotonic across $K$.}
+Tables~\ref{tab:middim} and \ref{tab:highdim} report F1 and AUC for DGP~1.
+PRIMED maintains a consistent AUC advantage across dimensionalities, though its F1 advantage is not strictly monotonic across $K$.
 At $\mathrm{SNR} = 1.0$ (S2), PRIMED achieves F1 of $.585$ ($K = 50$) and $.500$ ($K = 100$), compared with $.619/.477$ (CD~GL) and $.546/.497$ (C~LASSO).
 Figure~\ref{fig:dim_f1} visualizes the F1 trend across $K \in \{20, 50, 100\}$.
 
-\modified{Tables~\ref{tab:middim_dgp2} and \ref{tab:highdim_dgp2} report the corresponding results for DGP~2 ($\gamma = 0$).
+Tables~\ref{tab:middim_dgp2} and \ref{tab:highdim_dgp2} report the corresponding results for DGP~2 ($\gamma = 0$).
 The pattern is consistent: PRIMED achieves the highest F1 across all settings.
 At $K = 100$, $\mathrm{SNR} = 1.0$ (S2), PRIMED achieves F1 of $.591$ versus $.481$ (CD~GL) and $.482$ (C~LASSO), a gap exceeding $.100$, consistent with the pattern under DGP~1.
-The advantage is driven by PRIMED's higher PPV, reflecting its ability to separate the dispersion structure from outcome relevance even when $\gamma = 0$.}
+The advantage is driven by PRIMED's higher PPV, reflecting its ability to separate the dispersion structure from outcome relevance even when $\gamma = 0$.
 
-\modified{In addition to F1 and AUC, we assess variable selection stability via the Jaccard index, averaged over all $\binom{B}{2}$ pairs of replications.
+In addition to F1 and AUC, we assess variable selection stability via the Jaccard index, averaged over all $\binom{B}{2}$ pairs of replications.
 Table~\ref{tab:sim_jaccard} reports the results for the S2 scenario (noise present) under DGP~1 at $\mathrm{SNR} = 1.0$.
 PRIMED achieves the highest Jaccard index at all dimensionalities: $0.507$ ($K = 20$), $0.352$ ($K = 50$), and $0.228$ ($K = 100$), compared to $0.485/0.306/0.182$ for CD~GL and $0.416/0.318/0.192$ for C~LASSO.
-All methods show declining stability with increasing $K$, as expected when the number of candidate features grows, but PRIMED's advantage amplifies in higher dimensions: the gap over CD~GL increases from $+0.022$ at $K = 20$ to $+0.046$ at $K = 100$.}
+All methods show declining stability with increasing $K$, as expected when the number of candidate features grows, but PRIMED's advantage amplifies in higher dimensions: the gap over CD~GL increases from $+0.022$ at $K = 20$ to $+0.046$ at $K = 100$.
 
-\modified{
+
 \begin{table}[h]
 \caption{Variable selection stability (Jaccard index) across dimensionality}\label{tab:sim_jaccard}
 \small
@@ -591,7 +586,7 @@ C~LASSO & $0.416$ & $0.318$ & $0.192$ \\
 \end{tabular*}
 \footnotetext{DGP~1 ($\gamma \neq 0$), S2, $\mathrm{SNR} = 1.0$. Jaccard index averaged over all $\binom{50}{2} = 1{,}225$ pairs of $B = 50$ replications.}
 \end{table}
-}
+
 
 \begin{table}[h]
 \caption{Mid-dimensional simulation: DGP~1 ($\gamma \neq 0$, $K{=}50$, $n{=}200$, $\tau{=}0.3$)}\label{tab:middim}
@@ -643,7 +638,7 @@ C~LASSO & $0.416$ & $0.318$ & $0.192$ \\
 \footnotetext{Mean (\textit{SD}) over $B = 50$ replications; best mean in bold.}
 \end{table}
 
-\modified{
+
 \begin{table}[h]
 \caption{Mid-dimensional simulation: DGP~2 ($\gamma = 0$, $K{=}50$, $n{=}200$, $\tau{=}0.3$)}\label{tab:middim_dgp2}
 \footnotesize
@@ -693,7 +688,7 @@ C~LASSO & $0.416$ & $0.318$ & $0.192$ \\
 \end{tabular*}
 \footnotetext{Mean (\textit{SD}) over $B = 50$ replications; best mean in bold.}
 \end{table}
-}
+
 
 %%-------------------------------------------------------------------
 \subsection{Application: rectal cancer pCR prediction}\label{sec:application}
@@ -714,12 +709,12 @@ We split the data by center: Center~1 ($n = 50$, pCR rate $34.0\%$) serves as th
 \subsubsection{Dispersion structure}
 
 Before fitting models, we examine the consensus--disagreement relationship in this dataset.
-\modified{Figure~\ref{fig:scatter_cd} visualizes the Pearson correlation between $\bar X_k$ and $S_k$ for each ordinal feature.}
+Figure~\ref{fig:scatter_cd} visualizes the Pearson correlation between $\bar X_k$ and $S_k$ for each ordinal feature.
 Eight of the ten features show correlations whose 95\% CI excludes zero, confirming that reader disagreement is systematically related to the consensus level.
 Pre\_DWI shows the strongest relationship ($r = -0.88$, 95\% CI: $[-0.92, -0.85]$), whereas Post\_cT ($r = -0.09$) and MERCURY ($r = +0.06$) have CIs containing zero.
 
-\modified{Inspection of Figure~\ref{fig:scatter_cd} reveals that several features exhibit nonlinear patterns, in particular inverted-U shapes where disagreement peaks at intermediate consensus values and drops near the scale boundaries.
-The implications of these nonlinear patterns for model specification are explored in the sensitivity analysis (Section~\ref{sec:quad_sensitivity}).}
+Inspection of Figure~\ref{fig:scatter_cd} reveals that several features exhibit nonlinear patterns, in particular inverted-U shapes where disagreement peaks at intermediate consensus values and drops near the scale boundaries.
+The implications of these nonlinear patterns for model specification are explored in the sensitivity analysis (Section~\ref{sec:quad_sensitivity}).
 
 \subsubsection{Model comparison}
 
@@ -729,7 +724,7 @@ CD~GL selects three variables: Fibrosis grading, ESGAR, and the binary feature S
 Pre\_DWI is selected by PRIMED but not by CD~GL or C~LASSO; conversely, ESGAR and Split scar are selected by both CD~GL and C~LASSO but dropped by PRIMED.
 C~LASSO, which uses only the consensus channel, selects Fibrosis grading ($\hat\beta = -0.66$), ESGAR ($\hat\beta = -0.10$), and the binary feature Split scar ($\hat\delta = 1.36$) as consensus-only predictors (Table~\ref{tab:app_coefs}).
 
-\modified{
+
 \begin{table}[h]
 \caption{Variable selection comparison on rectal cancer data}\label{tab:app_coefs}
 \footnotesize
@@ -751,9 +746,9 @@ C~LASSO, which uses only the consensus channel, selects Fibrosis grading ($\hat\
 \end{tabular*}
 \footnotetext{Only features selected by at least one method are shown. Empty cells indicate non-selection. PRIMED and CD~GL estimate $(\hat\beta, \hat\gamma)$ for ordinal features; C~LASSO estimates consensus-only $\hat\beta$. Binary features enter with a single coefficient $\hat\delta$.}
 \end{table}
-}
 
-\modified{Table~\ref{tab:app_coefs} summarizes the estimated coefficients; the corresponding fitted models are:}
+
+Table~\ref{tab:app_coefs} summarizes the estimated coefficients; the corresponding fitted models are:
 \begin{align*}
   \text{PRIMED (linear):} \quad \hat p_i &= \mathrm{logit}^{-1}\!\bigl(\hat\beta_0 + \hat\beta_B\,\bar X_{i,B} + \hat\gamma_B\,\tilde S_{i,B} + \hat\beta_F\,\bar X_{i,F} + \hat\gamma_F\,\tilde S_{i,F}\bigr), \\
   \text{CD\,GL:} \quad \hat p_i &= \mathrm{logit}^{-1}\!\bigl(\hat\beta_0 + \hat\beta_B\,\bar X_{i,B} + \hat\gamma_B\, S_{i,B} + \hat\beta_A\,\bar X_{i,A} + \hat\gamma_A\, S_{i,A} + \hat\delta_C\,\bar X_{i,C}\bigr), \\
@@ -783,25 +778,25 @@ C~LASSO      & 3 & $0.865$ & $0.767$ \\
 \footnotetext{Training: Center~1 ($n = 50$); External: Centers~2--3 ($n = 99$).}
 \end{table}
 
-\modified{To verify that the consensus--disagreement relationship for the selected features is genuine, we fit separate OLS regressions of $S_k$ on $\bar X_k$ for each selected feature.
+To verify that the consensus--disagreement relationship for the selected features is genuine, we fit separate OLS regressions of $S_k$ on $\bar X_k$ for each selected feature.
 Both show significant dispersion slopes: Pre\_DWI ($\hat\alpha_{\mathrm{OLS}} = -1.54$, $p < 0.001$) and Fibrosis grading ($\hat\alpha_{\mathrm{OLS}} = -0.17$, $p = 0.040$), confirming that the link is real and not an artifact of the joint estimation.
 
 The OLS estimate for Pre\_DWI ($\hat\alpha_{\mathrm{OLS}} = -1.54$) differs substantially from the PRIMED joint estimate ($\hat\alpha = -0.46$ in Table~\ref{tab:app_coefs}).
 This discrepancy provides direct empirical evidence of the coupling gradient mechanism described in Section~\ref{sec:optimization}: because $\hat\gamma_F \neq 0$, the outcome loss pulls $\hat\alpha_F$ away from the OLS solution toward a value that jointly optimizes both the dispersion and outcome objectives.
-For Fibrosis grading, where $|\hat\gamma|$ is small ($0.09$), the PRIMED estimate ($\hat\alpha = -0.17$) closely matches the OLS value, consistent with the theoretical prediction that the coupling gradient vanishes when $\gamma_k \approx 0$.}
+For Fibrosis grading, where $|\hat\gamma|$ is small ($0.09$), the PRIMED estimate ($\hat\alpha = -0.17$) closely matches the OLS value, consistent with the theoretical prediction that the coupling gradient vanishes when $\gamma_k \approx 0$.
 
 Pre\_DWI warrants separate comment.
 PRIMED's penalized estimation selects this feature with a well-defined group norm ($\|(\hat\beta, \hat\gamma)\|_2 = 0.74$), demonstrating that it carries outcome-relevant information through both the consensus and residual disagreement channels.
 In the unpenalized refit, however, the near-perfect consensus--disagreement correlation ($r = -0.88$) induces collinearity between $\bar X_k$ and $\tilde S_k$, leading to inflated standard errors for the individual coefficients.
 This distinction between selection and estimation stability is expected: PRIMED's group penalty regularizes the coefficient estimates during selection, whereas the unpenalized refit exposes the inherent collinearity.
 The selection itself remains reliable; what is unstable is the decomposition of the effect into $\beta_k$ and $\gamma_k$ in the absence of regularization.
-\modified{The selection of Pre\_DWI is revisited in the sensitivity analysis below, where a quadratic dispersion model reveals that its apparent disagreement signal is largely an artifact of linear misspecification.}
+The selection of Pre\_DWI is revisited in the sensitivity analysis below, where a quadratic dispersion model reveals that its apparent disagreement signal is largely an artifact of linear misspecification.
 
-\modified{\subsubsection{Sensitivity analysis: quadratic dispersion model}\label{sec:quad_sensitivity}}
+\subsubsection{Sensitivity analysis: quadratic dispersion model}\label{sec:quad_sensitivity}
 
-\modified{To quantify the nonlinear consensus--disagreement patterns, we compare linear and quadratic dispersion models for each ordinal feature.
+To quantify the nonlinear consensus--disagreement patterns, we compare linear and quadratic dispersion models for each ordinal feature.
 Table~\ref{tab:disp_r2} reports the results: Fibrosis grading and Post\_restriction show the largest gains ($\Delta R^2 > 0.60$), and Pre\_DWI achieves $R^2 = 0.992$ under the quadratic model.
-Given these nonlinear patterns, we refit PRIMED with the quadratic dispersion model~\eqref{eq:quad_disp} on the same training data.}
+Given these nonlinear patterns, we refit PRIMED with the quadratic dispersion model~\eqref{eq:quad_disp} on the same training data.
 
 \begin{table}[h]
 \caption{Dispersion model comparison: linear vs quadratic $R^2$ ($n = 149$)}\label{tab:disp_r2}
@@ -826,7 +821,7 @@ Post\_ADC           & 0.135 & 0.135 & +0.000 & $+0.010$ \\
 \footnotetext{$R^2$ from OLS regression of $S_k$ on $\bar X_k$ (linear) or $\bar X_k$ and $\bar X_k^2$ (quadratic), computed on all 149 subjects. ***$p < 0.001$, **$p < 0.01$ for the quadratic coefficient $\hat\alpha_2$.}
 \end{table}
 
-\modified{
+
 Table~\ref{tab:quad_comparison} compares the results.
 With a more flexible dispersion model that captures the inverted-U boundary effect, the quadratic PRIMED selects only Fibrosis grading ($\hat\beta = -0.63$, $\hat\gamma = -0.05$), the feature that was selected by all three methods under the linear specification.
 The fitted model is
@@ -834,7 +829,7 @@ The fitted model is
   \text{PRIMED (quadratic):} \quad \hat p_i = \mathrm{logit}^{-1}\!\bigl(\hat\beta_0 + \hat\beta_B\,\bar X_{i,B} + \hat\gamma_B\,\tilde S_{i,B}^{\mathrm{quad}}\bigr),
 \]
 where $\tilde S_{i,B}^{\mathrm{quad}} = S_{i,B} - \hat\alpha_{0B} - \hat\alpha_{1B}\,\bar X_{i,B} - \hat\alpha_{2B}\,\bar X_{i,B}^2$ is the residual disagreement under the quadratic dispersion model.
-Pre\_DWI, which the linear PRIMED selected, is no longer retained: the quadratic dispersion model explains $99.2\%$ of its consensus--disagreement variance (Table~\ref{tab:disp_r2}), leaving negligible residual disagreement with which to predict the outcome.}
+Pre\_DWI, which the linear PRIMED selected, is no longer retained: the quadratic dispersion model explains $99.2\%$ of its consensus--disagreement variance (Table~\ref{tab:disp_r2}), leaving negligible residual disagreement with which to predict the outcome.
 
 \begin{table}[h]
 \caption{Sensitivity analysis: linear vs quadratic dispersion model}\label{tab:quad_comparison}
@@ -853,72 +848,72 @@ C~LASSO            & 3 & ---   & 0.865 & 0.767 \\
 \footnotetext{The quadratic PRIMED selects only Fibrosis grading. Despite using a single feature, its external AUC ($0.766$) matches C~LASSO ($0.767$, 3 variables).}
 \end{table}
 
-\modified{Despite using only one feature, the quadratic PRIMED achieves an external AUC of $0.766$, essentially matching C~LASSO ($0.767$ with three variables) and narrowing the gap with CD~GL ($0.782$).
+Despite using only one feature, the quadratic PRIMED achieves an external AUC of $0.766$, essentially matching C~LASSO ($0.767$ with three variables) and narrowing the gap with CD~GL ($0.782$).
 The more parsimonious model also avoids the overfitting risk associated with small training samples: the training--external AUC gap is $0.086$ for the quadratic PRIMED versus $0.112$ for the linear PRIMED.
-This result illustrates that a better-specified dispersion model can improve variable selection parsimony without sacrificing prediction performance.}
+This result illustrates that a better-specified dispersion model can improve variable selection parsimony without sacrificing prediction performance.
 
 %%-------------------------------------------------------------------
-\modified{\subsection{Application: LIDC-IDRI lung nodule radiomics}\label{sec:lidc}}
+\subsection{Application: LIDC-IDRI lung nodule radiomics}\label{sec:lidc}
 %%-------------------------------------------------------------------
 
-\modified{\subsubsection{Data and design}}
+\subsubsection{Data and design}
 
-\modified{To validate PRIMED in a high-dimensional radiomics setting, we apply it to the Lung Image Database Consortium and Image Database Resource Initiative (LIDC-IDRI) dataset \cite{Armato2011}.
+To validate PRIMED in a high-dimensional radiomics setting, we apply it to the Lung Image Database Consortium and Image Database Resource Initiative (LIDC-IDRI) dataset \cite{Armato2011}.
 The dataset comprises $695$ patients with $1{,}390$ lung nodules, each annotated by $3$--$4$ radiologists.
 A CT windowing of $[-1000, 400]$ Hounsfield units (HU) was applied to remove soft-tissue artifacts and standardize voxel intensity ranges across scans (see Appendix~\ref{secA_lidc} for details).
 For each nodule, $K = 107$ PyRadiomics features \cite{vanGriethuysen2017} were extracted from the individual radiologist segmentations, yielding a multi-reader radiomics matrix with consensus and disagreement summaries computed as described in Section~\ref{sec:data}.
-The binary outcome is malignancy status (malignant vs.\ benign), derived from diagnostic information.}
+The binary outcome is malignancy status (malignant vs.\ benign), derived from diagnostic information.
 
-\modified{Prediction performance was evaluated via nested cross-validation: a stratified 10-fold outer CV assessed generalization, while within each outer training fold, a stratified 5-fold inner CV selected $\lambda$ (using the same data-driven path and deviance criterion described in Section~\ref{sec:lambda_cv}).
+Prediction performance was evaluated via nested cross-validation: a stratified 10-fold outer CV assessed generalization, while within each outer training fold, a stratified 5-fold inner CV selected $\lambda$ (using the same data-driven path and deviance criterion described in Section~\ref{sec:lambda_cv}).
 The same nested structure was used for all three methods: PRIMED used 5-fold inner CV over the data-driven $\lambda$ path, CD~GL and C~LASSO used the default cross-validation procedures of \texttt{grpreg} and \texttt{glmnet}, respectively, each with 5 inner folds.
 This design ensures that no information from the outer test fold leaks into the $\lambda$ selection, and that all methods are compared under identical train/test partitions.
 
-Note that the rectal cancer application (Section~\ref{sec:application}) uses a different evaluation strategy: training on a single center and external validation on held-out centers, without outer CV, because the multi-center design provides a natural external validation set.}
+Note that the rectal cancer application (Section~\ref{sec:application}) uses a different evaluation strategy: training on a single center and external validation on held-out centers, without outer CV, because the multi-center design provides a natural external validation set.
 
-\modified{\subsubsection{Prediction and variable selection}}
+\subsubsection{Prediction and variable selection}
 
-\modified{Table~\ref{tab:lidc_auc} reports the 10-fold CV AUC and the number of features selected.
+Table~\ref{tab:lidc_auc} reports the 10-fold CV AUC and the number of features selected.
 All three methods achieve comparable prediction performance (AUC $0.898$--$0.905$), with pairwise differences smaller than the within-method standard deviation across folds ($\mathrm{SD} \approx 0.033$--$0.035$).
-PRIMED selects the most features on average ($65.6$), followed by CD~GL ($30.7$) and C~LASSO ($23.2$).}
+PRIMED selects the most features on average ($65.6$), followed by CD~GL ($30.7$) and C~LASSO ($23.2$).
 
 \begin{table}[h]
-\caption{\modified{LIDC-IDRI lung nodule radiomics: 10-fold CV performance}}\label{tab:lidc_auc}
+\caption{LIDC-IDRI lung nodule radiomics: 10-fold CV performance}\label{tab:lidc_auc}
 \small
 \renewcommand{\arraystretch}{1.1}
 \begin{tabular*}{\textwidth}{@{\extracolsep\fill}lcc}
 \toprule
-\modified{Method} & \modified{AUC (SD)} & \modified{Features selected} \\
+Method & AUC (SD) & Features selected \\
 \midrule
-\modified{PRIMED}  & \modified{$0.900$ ($0.035$)} & \modified{$65.6$} \\
-\modified{CD~GL}   & \modified{$0.905$ ($0.033$)} & \modified{$30.7$} \\
-\modified{C~LASSO} & \modified{$0.898$ ($0.034$)} & \modified{$23.2$} \\
+PRIMED  & $0.900$ ($0.035$) & $65.6$ \\
+CD~GL   & $0.905$ ($0.033$) & $30.7$ \\
+C~LASSO & $0.898$ ($0.034$) & $23.2$ \\
 \botrule
 \end{tabular*}
-\footnotetext{\modified{Mean (SD) over 10 stratified CV folds with nested 5-fold inner CV for $\lambda$ selection.}}
+\footnotetext{Mean (SD) over 10 stratified CV folds with nested 5-fold inner CV for $\lambda$ selection.}
 \end{table}
 
-\modified{\subsubsection{Variable selection stability}}
+\subsubsection{Variable selection stability}
 
-\modified{Beyond point prediction, we assess the consistency of variable selection across CV folds using the Jaccard index \cite{Jaccard1912}: for two sets of selected features $A$ and $B$, $J(A, B) = |A \cap B| / |A \cup B|$.
+Beyond point prediction, we assess the consistency of variable selection across CV folds using the Jaccard index \cite{Jaccard1912}: for two sets of selected features $A$ and $B$, $J(A, B) = |A \cap B| / |A \cup B|$.
 The Jaccard index is averaged over all $\binom{10}{2} = 45$ pairs of folds.
 Table~\ref{tab:lidc_jaccard} reports the results.
 PRIMED achieves the highest selection stability ($J = 0.798$, SD $0.053$), substantially exceeding CD~GL ($0.688$, SD $0.053$) and C~LASSO ($0.560$, SD $0.126$).
-The high Jaccard index indicates that PRIMED's selected feature set is robust to the choice of training fold, a desirable property for clinical deployment where reproducibility is essential.}
+The high Jaccard index indicates that PRIMED's selected feature set is robust to the choice of training fold, a desirable property for clinical deployment where reproducibility is essential.
 
 \begin{table}[h]
-\caption{\modified{LIDC-IDRI: variable selection stability (Jaccard index)}}\label{tab:lidc_jaccard}
+\caption{LIDC-IDRI: variable selection stability (Jaccard index)}\label{tab:lidc_jaccard}
 \small
 \renewcommand{\arraystretch}{1.1}
 \begin{tabular*}{\textwidth}{@{\extracolsep\fill}lcc}
 \toprule
-\modified{Method} & \modified{Jaccard (SD)} & \modified{Features selected} \\
+Method & Jaccard (SD) & Features selected \\
 \midrule
-\modified{PRIMED}  & \modified{$\mathbf{0.798}$ ($0.053$)} & \modified{$65.6$} \\
-\modified{CD~GL}   & \modified{$0.688$ ($0.053$)} & \modified{$30.7$} \\
-\modified{C~LASSO} & \modified{$0.560$ ($0.126$)} & \modified{$23.2$} \\
+PRIMED  & $\mathbf{0.798}$ ($0.053$) & $65.6$ \\
+CD~GL   & $0.688$ ($0.053$) & $30.7$ \\
+C~LASSO & $0.560$ ($0.126$) & $23.2$ \\
 \botrule
 \end{tabular*}
-\footnotetext{\modified{Jaccard index averaged over all $\binom{10}{2} = 45$ pairs of CV folds.}}
+\footnotetext{Jaccard index averaged over all $\binom{10}{2} = 45$ pairs of CV folds.}
 \end{table}
 
 
@@ -926,7 +921,7 @@ The high Jaccard index indicates that PRIMED's selected feature set is robust to
 \section{Discussion}\label{sec:discussion}
 %%===================================================================
 
-\modified{PRIMED's advantage stems from three design choices that work in concert.
+PRIMED's advantage stems from three design choices that work in concert.
 
 
 By modeling the consensus--disagreement relationship via $\tilde S_{ik} = S_{ik} - \alpha_{0k} - \alpha_k \bar X_{ik}$ and feeding only the residual into the outcome model, PRIMED prevents features with large dispersion effects but no outcome relevance (noise variables) from being selected.
@@ -955,16 +950,16 @@ The joint objective is non-convex, though empirical path analysis shows strictly
 The rectal cancer training sample ($n = 50$) limits the external AUC of PRIMED ($0.753$) relative to CD~GL ($0.782$); simulation results at larger sample sizes consistently favor PRIMED.
 The quadratic dispersion extension (Section~\ref{sec:quad_sensitivity}) improves model specification for features with inverted-U patterns, but more flexible specifications (splines, higher-order polynomials) remain to be explored.
 The proximal gradient algorithm is slower than off-the-shelf group LASSO solvers.
-Future work could extend PRIMED to survival or multi-class outcomes.}
+Future work could extend PRIMED to survival or multi-class outcomes.
 
 %%===================================================================
 \section{Conclusions}\label{sec:conclusions}
 %%===================================================================
 
-\modified{We proposed PRIMED, a joint loss framework for multi-reader imaging data that integrates consensus, disagreement, and their structural relationship into a single penalized objective.
+We proposed PRIMED, a joint loss framework for multi-reader imaging data that integrates consensus, disagreement, and their structural relationship into a single penalized objective.
 The residual disagreement formulation removes the consensus--disagreement dependence before entering disagreement into the outcome model, while selective penalization leaves dispersion parameters unpenalized and drives variable selection solely through the outcome coefficients.
 Simulations demonstrate consistent superiority in variable selection accuracy and stability across a range of dimensions, noise levels, and signal strengths.
-Two applications validate the framework: in rectal cancer MRI ($K = 14$), PRIMED identifies clinically meaningful signals missed by competing methods; in LIDC-IDRI lung nodule radiomics ($K = 107$), it achieves comparable prediction with substantially higher selection stability (Jaccard $0.798$ vs.\ $0.688$ and $0.560$).}
+Two applications validate the framework: in rectal cancer MRI ($K = 14$), PRIMED identifies clinically meaningful signals missed by competing methods; in LIDC-IDRI lung nodule radiomics ($K = 107$), it achieves comparable prediction with substantially higher selection stability (Jaccard $0.798$ vs.\ $0.688$ and $0.560$).
 
 %%===================================================================
 %% Figures
@@ -1126,10 +1121,10 @@ In S1, noise variables are identical to null variables ($\alpha_{8\text{--}10} =
 \addplot[color=red!70, mark=o, dashed] coordinates {(0.3,0.705)(0.6,0.672)(0.9,0.584)};
 \end{axis}
 \end{tikzpicture}
-\caption{\modified{F1 score as a function of subject-specific noise $\tau$.
+\caption{F1 score as a function of subject-specific noise $\tau$.
 Results shown for S2 (noise present) under DGP~1 (top) and DGP~2 (bottom).
 Under DGP~1, C~LASSO collapses at high $\tau$ because it ignores the disagreement channel that carries outcome signal.
-Under DGP~2, C~LASSO remains stable since $\gamma = 0$, but PRIMED still achieves the highest F1 through superior PPV.}}\label{fig:tau_f1}
+Under DGP~2, C~LASSO remains stable since $\gamma = 0$, but PRIMED still achieves the highest F1 through superior PPV.}\label{fig:tau_f1}
 \end{figure}
 
 %% --- Figure 4: F1 vs K (2x2 grid: DGP1/DGP2 x SNR) ---
@@ -1195,10 +1190,10 @@ Under DGP~2, C~LASSO remains stable since $\gamma = 0$, but PRIMED still achieve
 \addplot[color=red!70, mark=o, dashed] coordinates {(20,0.705)(50,0.590)(100,0.482)};
 \end{axis}
 \end{tikzpicture}
-\caption{\modified{F1 score as a function of dimensionality $K$.
+\caption{F1 score as a function of dimensionality $K$.
 Results shown for S2 (noise present) under DGP~1 (top) and DGP~2 (bottom).
 Under DGP~1, PRIMED's AUC advantage is consistent across $K$.
-Under DGP~2, PRIMED maintains a consistent advantage (F1 gap $> .100$ at $K = 100$), driven by its ability to maintain higher PPV when many inactive features have nontrivial dispersion structure.}}\label{fig:dim_f1}
+Under DGP~2, PRIMED maintains a consistent advantage (F1 gap $> .100$ at $K = 100$), driven by its ability to maintain higher PPV when many inactive features have nontrivial dispersion structure.}\label{fig:dim_f1}
 \end{figure}
 
 %% --- Figure 5: Scatter plot ---
@@ -1207,9 +1202,9 @@ Under DGP~2, PRIMED maintains a consistent advantage (F1 gap $> .100$ at $K = 10
 \includegraphics[width=\textwidth]{fig_scatter_cd.pdf}
 \caption{Consensus--disagreement scatter plots for each ordinal feature.
 The horizontal axis shows the consensus $\bar X_k$ (mean across five readers, $n = 149$) and the vertical axis shows the disagreement $S_k$ (standard deviation across readers).
-\modified{Red curves indicate the fitted quadratic regression $S_k = \alpha_{0k} + \alpha_{1k} \bar X_k + \alpha_{2k} \bar X_k^2 + \varepsilon_k$; shaded bands show 95\% confidence intervals.
+Red curves indicate the fitted quadratic regression $S_k = \alpha_{0k} + \alpha_{1k} \bar X_k + \alpha_{2k} \bar X_k^2 + \varepsilon_k$; shaded bands show 95\% confidence intervals.
 Panel titles report $R^2$ for both the linear and quadratic models.
-Features are ordered by quadratic $R^2$; Pre\_DWI ($R^2 = 0.99$), Fibrosis ($R^2 = 0.69$), and Post\_restriction ($R^2 = 0.68$) show pronounced inverted-U patterns that the linear model fails to capture.}}\label{fig:scatter_cd}
+Features are ordered by quadratic $R^2$; Pre\_DWI ($R^2 = 0.99$), Fibrosis ($R^2 = 0.69$), and Post\_restriction ($R^2 = 0.68$) show pronounced inverted-U patterns that the linear model fails to capture.}\label{fig:scatter_cd}
 \end{figure}
 
 %%===================================================================
@@ -1286,22 +1281,22 @@ ADC: apparent diffusion coefficient;
 ESGAR: European Society of Gastrointestinal and Abdominal Radiology;
 ICC: intraclass correlation coefficient;
 SD: standard deviation;
-\modified{LIDC-IDRI: Lung Image Database Consortium and Image Database Resource Initiative;
+LIDC-IDRI: Lung Image Database Consortium and Image Database Resource Initiative;
 HU: Hounsfield units;
 CT: computed tomography;
 CV: cross-validation;
-}
+
 
 \section*{Declarations}
 
 \subsection*{Ethics approval and consent to participate}
-This study was approved by the institutional review board of each participating center. Informed consent was obtained from all participants.
+This study was approved by the Institutional Review Board of Severance Hospital, Yonsei University College of Medicine (IRB approval number to be inserted). Informed consent was obtained from all participants. The LIDC-IDRI dataset is publicly available and does not require separate ethics approval.
 
 \subsection*{Consent for publication}
 Not applicable.
 
 \subsection*{Availability of data and materials}
-The LIDC-IDRI dataset analysed during the current study is publicly available in The Cancer Imaging Archive (TCIA) repository, https://doi.org/10.7937/K9/TCIA.2015.LO9QL9SX \cite{Armato2011}. The rectal cancer MRI dataset used during the current study is available from the corresponding author on reasonable request.
+The LIDC-IDRI dataset analysed during the current study is publicly available in The Cancer Imaging Archive (TCIA) repository \cite{TCIA2015}. The rectal cancer MRI dataset used during the current study is available from the corresponding author on reasonable request.
 
 \subsection*{Competing interests}
 The authors declare that they have no competing interests.
@@ -1320,13 +1315,12 @@ Not applicable.
 \begin{appendices}
 %%===================================================================
 
-\clearpage
 \section{Consensus--disagreement measures for multi-reader data}\label{secA1}
 
 PRIMED requires two subject-level summaries per feature: a consensus measure and a disagreement (dispersion) measure.
 In Section~\ref{sec:methods} we use the sample mean and sample standard deviation, which are the natural choices when features are continuous or ordinal with five or more categories.
 This appendix catalogues alternatives for different measurement scales, so that PRIMED can be applied to a broader range of multi-reader data.
-\modified{The two applications in this paper illustrate different ends of this spectrum: the rectal cancer study (Section~\ref{sec:application}) uses ordinal MRI features scored on 3--6 point scales ($K = 10$, $m = 5$ readers), while the LIDC-IDRI study (Section~\ref{sec:lidc}) uses continuous radiomics features extracted from 3D segmentation masks ($K = 107$, $m = 3$--$4$ readers).}
+The two applications in this paper illustrate different ends of this spectrum: the rectal cancer study (Section~\ref{sec:application}) uses ordinal MRI features scored on 3--6 point scales ($K = 10$, $m = 5$ readers), while the LIDC-IDRI study (Section~\ref{sec:lidc}) uses continuous radiomics features extracted from 3D segmentation masks ($K = 107$, $m = 3$--$4$ readers).
 
 Throughout, $R$ readers evaluate a subject on a single feature, producing scores $X_1, \dots, X_R$.
 
@@ -1339,15 +1333,15 @@ PRIMED, by contrast, needs one consensus value and one disagreement value \emph{
 \paragraph{When disagreement is informative.}
 The dispersion model $S_k = \alpha_{0k} + \alpha_k \bar X_k + \varepsilon_k$ is most useful when $\alpha_k \neq 0$, i.e., when disagreement depends systematically on the consensus level.
 Common patterns include negative linear (disagreement decreases near the scale boundaries), positive linear, and inverted-U-shaped (disagreement peaks at intermediate scores).
-\modified{When nonlinear patterns are present, the quadratic extension $S_k = \alpha_{0k} + \alpha_{1k} \bar X_k + \alpha_{2k} \bar X_k^2 + \varepsilon_k$ (Section~\ref{sec:nonlinear}) can substantially improve the explained variance; e.g., from $R^2 = 0.085$ to $0.695$ for Fibrosis in the rectal cancer data (Table~\ref{tab:disp_r2}).
-In the LIDC-IDRI radiomics data, 77 of 107 features show higher quadratic than linear $R^2$ (Section~\ref{sec:lidc}).}
+When nonlinear patterns are present, the quadratic extension $S_k = \alpha_{0k} + \alpha_{1k} \bar X_k + \alpha_{2k} \bar X_k^2 + \varepsilon_k$ (Section~\ref{sec:nonlinear}) can substantially improve the explained variance; e.g., from $R^2 = 0.085$ to $0.695$ for Fibrosis in the rectal cancer data (Table~\ref{tab:disp_r2}).
+In the LIDC-IDRI radiomics data, 77 of 107 features show higher quadratic than linear $R^2$ (Section~\ref{sec:lidc}).
 If $S_k$ is approximately constant across subjects, the dispersion channel adds little information.
 
 \subsection{Continuous features}\label{secA2}
 
 For continuous features, the arithmetic mean and standard deviation are the default consensus and disagreement measures used in PRIMED (Section~\ref{sec:methods}).
-\modified{This is the setting used in the LIDC-IDRI radiomics application (Section~\ref{sec:lidc}), where each feature is a continuous quantity (e.g., volume in mm$^3$, entropy in nats) computed independently from each reader's segmentation mask.
-When features span very different scales, standardization prior to model fitting is recommended; in our implementation, both $\bar X_k$ and $S_k$ are centered and scaled to unit variance within the training set.}
+This is the setting used in the LIDC-IDRI radiomics application (Section~\ref{sec:lidc}), where each feature is a continuous quantity (e.g., volume in mm$^3$, entropy in nats) computed independently from each reader's segmentation mask.
+When features span very different scales, standardization prior to model fitting is recommended; in our implementation, both $\bar X_k$ and $S_k$ are centered and scaled to unit variance within the training set.
 Table~\ref{tab:continuous_measures} lists alternatives.
 
 \begin{table}[h]
@@ -1375,7 +1369,7 @@ Type & Measure & Formula & Properties \\
 \subsection{Ordinal features}\label{secA3}
 
 For ordinal scales with five or more categories, treating the data as approximately continuous and using the mean and SD is well supported \cite{Norman2010,Sullivan2013}.
-\modified{In the rectal cancer application (Section~\ref{sec:application}), all 10 ordinal MRI features (scored on 3--6 point scales by five radiologists) are summarized using the mean and SD, following this continuous approximation.}
+In the rectal cancer application (Section~\ref{sec:application}), all 10 ordinal MRI features (scored on 3--6 point scales by five radiologists) are summarized using the mean and SD, following this continuous approximation.
 For shorter scales (3--4 categories), ordinal-specific dispersion measures may be preferred as alternatives.
 
 \paragraph{Within-group agreement ($r_{WG}$).}
@@ -1394,7 +1388,7 @@ Leik's $D$ \cite{Leik1966} uses the cumulative frequency distribution: $D = 0$ i
 \paragraph{Ordinal variation ($1 - l^2$).}
 Blair and Lacy's ordinal variation \cite{Blair2000} measures how far the cumulative distribution lies from a maximum-dispersion configuration, ranging from 0 (perfect consensus) to 1 (maximum dispersion).
 
-Table~\ref{tab:ordinal_summary} summarizes the available measures by scale length. \modified{Both applications in this paper use the mean and SD for all ordinal features.}
+Table~\ref{tab:ordinal_summary} summarizes the available measures by scale length. Both applications in this paper use the mean and SD for all ordinal features.
 
 \begin{table}[h]
 \caption{Available consensus and dispersion measures for ordinal features}\label{tab:ordinal_summary}
@@ -1405,7 +1399,7 @@ Table~\ref{tab:ordinal_summary} summarizes the available measures by scale lengt
 Scale & Consensus & Dispersion & Rationale \\
 \midrule
 5+ categories & Mean & SD, $r_{WG}$, $AD_M$ & Treat as continuous \\
-3--4 categories & Mean or Median & SD, Leik's $D$, $1-l^2$ & \modified{Mean/SD used in this paper; ordinal-specific alternatives available} \\
+3--4 categories & Mean or Median & SD, Leik's $D$, $1-l^2$ & Mean/SD used in this paper; ordinal-specific alternatives available \\
 \botrule
 \end{tabular*}
 \end{table}
@@ -1415,8 +1409,8 @@ Scale & Consensus & Dispersion & Rationale \\
 For binary features ($X_r \in \{0,1\}$), the standard deviation $\sqrt{p(1-p)}$ is a deterministic function of the consensus proportion $p = \bar X$.
 Including both as predictors would introduce perfect multicollinearity.
 PRIMED therefore uses \emph{only the consensus mean} for binary features, applying a LASSO penalty rather than the group penalty used for ordinal features.
-This is the approach taken in \modified{the rectal cancer application (Section~\ref{sec:application})}, where four binary MRI features enter the model as reader-averaged proportions.
-\modified{The LIDC-IDRI application does not involve binary features, as all 107 radiomics features are continuous.}
+This is the approach taken in the rectal cancer application (Section~\ref{sec:application}), where four binary MRI features enter the model as reader-averaged proportions.
+The LIDC-IDRI application does not involve binary features, as all 107 radiomics features are continuous.
 
 \subsection{Nominal features}\label{secA5}
 
@@ -1450,11 +1444,11 @@ Table~\ref{tab:scale_summary} summarizes how PRIMED handles each measurement sca
 \renewcommand{\arraystretch}{1.3}
 \begin{tabular*}{\textwidth}{@{\extracolsep\fill}lllcc}
 \toprule
-Scale & Consensus & Dispersion & PRIMED penalty & \modified{Application} \\
+Scale & Consensus & Dispersion & PRIMED penalty & Application \\
 \midrule
-Continuous & Mean & SD & Group $(\beta_k, \gamma_k)$ & \modified{LIDC-IDRI} \\
-Ordinal & Mean & SD & Group $(\beta_k, \gamma_k)$ & \modified{Rectal} \\
-Binary & Mean ($= p$) & Not applicable & LASSO ($\delta_k$) & \modified{Rectal} \\
+Continuous & Mean & SD & Group $(\beta_k, \gamma_k)$ & LIDC-IDRI \\
+Ordinal & Mean & SD & Group $(\beta_k, \gamma_k)$ & Rectal \\
+Binary & Mean ($= p$) & Not applicable & LASSO ($\delta_k$) & Rectal \\
 Nominal ($\geq$3 cat.) & Mode & Entropy or Simpson's $D$ & Group $(\beta_k, \gamma_k)$ & --- \\
 \botrule
 \end{tabular*}
@@ -1555,7 +1549,6 @@ All features are extracted with bin width 25, $1 \times 1 \times 1$~mm isotropic
 %%===================================================================
 %% References
 %%===================================================================
-\clearpage
 \bibliography{sn-bibliography}
 
 \end{document}
