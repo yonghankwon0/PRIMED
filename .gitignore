@@ -26,14 +26,24 @@ Thumbs.db
 .RData
 .Rproj.user
 
-# BMC guidelines (not part of submission)
+# Non-code files
 BMC_guideline.zip
-*.pdf
-!paper/*.pdf
-!figures/*.pdf
-!paper/fig_*.pdf
-
-# Submission guidelines PDFs
+user-manual.pdf
 Research article*.pdf
 Submission guidelines*.pdf
-user-manual.pdf
+
+# Data (not for public repo)
+data/*.xlsx
+
+# PDF / compiled outputs
+*.pdf
+!figures/*.pdf
+
+# Paper (keep source, not compiled)
+paper/*.pdf
+paper/*.bbl
+paper/*_korean.*
+
+# Logs
+*.log
+results/simulation_rerun*.log

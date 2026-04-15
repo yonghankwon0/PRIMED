@@ -49,7 +49,7 @@
 
 \textbf{Methods:} We propose PRIMED (Penalized Regularization for Integrated Multi-path Estimation with Dispersion), a joint loss framework that integrates three information channels: consensus (mean reader score), disagreement (standard deviation across readers), and the structural relationship between them. A dispersion model captures how each feature's consensus determines its disagreement, and only the residual disagreement (the component not explained by consensus) enters the outcome model. A group LASSO penalty on the outcome coefficients performs variable selection, while dispersion parameters remain unpenalized. Performance is evaluated through simulation studies and two applications: a multi-center, multi-reader MRI study of 149 rectal cancer patients (14 features, 5 readers) and the LIDC-IDRI lung nodule dataset (107 radiomics features, 1,390 nodules, 3--4 readers).
 
-\textbf{Results:} In simulations across multiple settings (varying signal-to-noise ratio, noise levels, and dimensionality up to 100 features), PRIMED consistently achieves the highest F1 score and AUC, with advantages driven primarily by higher positive predictive value. Variable selection stability, measured by the Jaccard index, is highest for PRIMED at all dimensionalities (e.g., 0.228 vs.\ 0.182 and 0.192 at 100 features). In the rectal cancer application, PRIMED selects features missed by competing methods. In the LIDC-IDRI application, PRIMED achieves comparable prediction (10-fold cross-validated AUC 0.900) with substantially higher selection stability (Jaccard 0.798 vs.\ 0.688 and 0.560).
+\textbf{Results:} In simulations across multiple settings (varying signal-to-noise ratio, noise levels, and dimensionality up to 100 features), PRIMED achieves the highest F1 score and AUC in the majority of settings, with advantages driven primarily by higher positive predictive value. Variable selection stability, measured by the Jaccard index, is highest for PRIMED at all dimensionalities (e.g., 0.248 vs.\ 0.217 and 0.218 at 100 features). In the rectal cancer application, PRIMED selects features missed by competing methods. In the LIDC-IDRI application, PRIMED achieves comparable prediction (10-fold cross-validated AUC 0.900) with substantially higher selection stability (Jaccard 0.798 vs.\ 0.688 and 0.560).
 
 \textbf{Conclusions:} PRIMED provides a principled framework for exploiting inter-reader disagreement in multi-reader imaging studies. By jointly modeling the consensus--disagreement relationship and using residual disagreement as a predictor, it achieves superior variable selection with consistent stability across replications, while maintaining competitive prediction performance. Validation on two distinct imaging modalities (MRI and CT) and scales (14 to 107 features) confirms these advantages generalize across clinical settings.}
 
@@ -354,7 +354,7 @@ These correspondences are structural: the actual coefficient estimates may diffe
 %%===================================================================
 
 %%-------------------------------------------------------------------
-\subsection{Noise variable simulation}\label{sec:noise_sim}
+\subsection{Simulation design}\label{sec:sim_design}
 %%-------------------------------------------------------------------
 
 For each subject $i$ and feature $k$, the data are generated as:
@@ -402,16 +402,18 @@ TPR (true positive rate) is the proportion of truly active features that are sel
 Prediction performance is measured by the area under the receiver operating characteristic curve (AUC) on an independently generated test set from the same DGP.
 All metrics are averaged over $B$ replications.
 
-Table~\ref{tab:noise_dgp1} reports F1 and AUC for DGP~1.
-PRIMED achieves the highest AUC at both SNR levels under both S1 and S2, and the highest F1 in most settings.
-At $\mathrm{SNR} = 1.0$ (S1), PRIMED achieves F1 of $.730$ versus $.702$ (CD~GL) and $.699$ (C~LASSO).
+%%-------------------------------------------------------------------
+\subsection{Noise variable simulation}\label{sec:noise_sim}
+%%-------------------------------------------------------------------
 
-Table~\ref{tab:noise_dgp2} reports results for DGP~2, when disagreement does not contribute to the outcome.
-PRIMED again achieves the highest F1 and AUC across all settings.
-At $\mathrm{SNR} = 1.0$ (S2), PRIMED achieves F1 of $.740$ versus $.704$ (CD~GL) and $.705$ (C~LASSO), with the difference driven primarily by higher PPV.
+Table~\ref{tab:noise_sim} reports variable selection and prediction results for both DGPs under S1 (no noise) and S2 (noise present).
+Under DGP~1 ($\gamma \neq 0$), PRIMED achieves the highest F1 and AUC across most settings.
+At $\mathrm{SNR} = 1.0$, PRIMED achieves the highest F1 under both S1 ($.733$) and S2 ($.721$).
+Differences between S1 and S2 are small, indicating that the presence of noise variables does not substantially affect any method's performance.
+Under DGP~2 ($\gamma = 0$), PRIMED achieves the highest F1 and AUC across all settings, with the advantage driven primarily by higher PPV: at $\mathrm{SNR} = 1.0$ (S2), PRIMED achieves F1 of $.745$ versus $.704$ (CD~GL) and $.705$ (C~LASSO).
 
 \begin{table}[h]
-\caption{Noise variable simulation: DGP~1 ($\gamma \neq 0$, $K{=}20$, $\tau{=}0.3$)}\label{tab:noise_dgp1}
+\caption{Noise variable simulation ($K{=}20$, $\tau{=}0.3$)}\label{tab:noise_sim}
 \footnotesize
 \renewcommand{\arraystretch}{1.05}
 \setlength{\tabcolsep}{1.5pt}
@@ -421,39 +423,24 @@ At $\mathrm{SNR} = 1.0$ (S2), PRIMED achieves F1 of $.740$ versus $.704$ (CD~GL)
 \cmidrule{3-6}\cmidrule{7-10}
 & & TPR & PPV & F1 & AUC & TPR & PPV & F1 & AUC \\
 \midrule
-\multirow{3}{*}{S1}
-& PRIMED & \textbf{.909}\,(\textit{.175}) & .590\,(\textit{.151}) & \textbf{.703}\,(\textit{.130}) & \textbf{.695}\,(\textit{.040}) & \textbf{.989}\,(\textit{.049}) & \textbf{.592}\,(\textit{.140}) & \textbf{.730}\,(\textit{.101}) & \textbf{.764}\,(\textit{.024}) \\
+\multicolumn{10}{l}{\textit{DGP~1 ($\gamma \neq 0$), S1: no noise}} \\[2pt]
+& PRIMED & \textbf{.909}\,(\textit{.175}) & .592\,(\textit{.152}) & \textbf{.703}\,(\textit{.130}) & \textbf{.693}\,(\textit{.039}) & \textbf{.989}\,(\textit{.049}) & \textbf{.597}\,(\textit{.149}) & \textbf{.733}\,(\textit{.105}) & \textbf{.761}\,(\textit{.025}) \\
 & CD GL        & .894\,(\textit{.128}) & \textbf{.598}\,(\textit{.149}) & .700\,(\textit{.090}) & .684\,(\textit{.029}) & .971\,(\textit{.091}) & .560\,(\textit{.111}) & .702\,(\textit{.093}) & .750\,(\textit{.029}) \\
-& C LASSO      & .909\,(\textit{.115}) & .571\,(\textit{.147}) & .685\,(\textit{.099}) & .688\,(\textit{.025}) & .974\,(\textit{.055}) & .553\,(\textit{.110}) & .699\,(\textit{.087}) & .742\,(\textit{.023}) \\
+& C LASSO      & \textbf{.909}\,(\textit{.115}) & .571\,(\textit{.147}) & .685\,(\textit{.099}) & .688\,(\textit{.025}) & .974\,(\textit{.055}) & .553\,(\textit{.110}) & .699\,(\textit{.087}) & .742\,(\textit{.023}) \\
 \midrule
-\multirow{3}{*}{S2}
-& PRIMED & .909\,(\textit{.173}) & .584\,(\textit{.146}) & .699\,(\textit{.129}) & \textbf{.695}\,(\textit{.040}) & \textbf{.983}\,(\textit{.069}) & \textbf{.580}\,(\textit{.146}) & \textbf{.717}\,(\textit{.100}) & \textbf{.763}\,(\textit{.025}) \\
+\multicolumn{10}{l}{\textit{DGP~1 ($\gamma \neq 0$), S2: noise present}} \\[2pt]
+& PRIMED & .906\,(\textit{.175}) & .586\,(\textit{.147}) & .699\,(\textit{.128}) & \textbf{.693}\,(\textit{.039}) & \textbf{.983}\,(\textit{.069}) & \textbf{.586}\,(\textit{.151}) & \textbf{.721}\,(\textit{.103}) & \textbf{.761}\,(\textit{.026}) \\
 & CD GL        & .891\,(\textit{.128}) & \textbf{.608}\,(\textit{.160}) & \textbf{.705}\,(\textit{.098}) & .683\,(\textit{.029}) & .971\,(\textit{.091}) & .559\,(\textit{.110}) & .701\,(\textit{.090}) & .750\,(\textit{.028}) \\
 & C LASSO      & \textbf{.914}\,(\textit{.112}) & .571\,(\textit{.141}) & .688\,(\textit{.096}) & .688\,(\textit{.024}) & .974\,(\textit{.063}) & .558\,(\textit{.110}) & .703\,(\textit{.087}) & .742\,(\textit{.023}) \\
-\botrule
-\end{tabular*}
-\footnotetext{Mean (\textit{SD}) over $B = 50$ replications; best mean in bold.}
-\end{table}
-
-\begin{table}[h]
-\caption{Noise variable simulation: DGP~2 ($\gamma = 0$, $K{=}20$, $\tau{=}0.3$)}\label{tab:noise_dgp2}
-\footnotesize
-\renewcommand{\arraystretch}{1.05}
-\setlength{\tabcolsep}{1.5pt}
-\begin{tabular*}{\textwidth}{@{\extracolsep\fill}ll cccc cccc}
-\toprule
-& & \multicolumn{4}{@{}c@{}}{SNR = 0.5} & \multicolumn{4}{@{}c@{}}{SNR = 1.0} \\
-\cmidrule{3-6}\cmidrule{7-10}
-& & TPR & PPV & F1 & AUC & TPR & PPV & F1 & AUC \\
 \midrule
-\multirow{3}{*}{S1}
-& PRIMED & \textbf{.926}\,(\textit{.120}) & \textbf{.635}\,(\textit{.138}) & \textbf{.739}\,(\textit{.095}) & \textbf{.699}\,(\textit{.026}) & \textbf{.986}\,(\textit{.043}) & \textbf{.624}\,(\textit{.121}) & \textbf{.758}\,(\textit{.091}) & \textbf{.757}\,(\textit{.020}) \\
+\multicolumn{10}{l}{\textit{DGP~2 ($\gamma = 0$), S1: no noise}} \\[2pt]
+& PRIMED & \textbf{.926}\,(\textit{.120}) & \textbf{.635}\,(\textit{.137}) & \textbf{.739}\,(\textit{.094}) & \textbf{.698}\,(\textit{.027}) & \textbf{.986}\,(\textit{.043}) & \textbf{.626}\,(\textit{.118}) & \textbf{.759}\,(\textit{.088}) & \textbf{.754}\,(\textit{.020}) \\
 & CD GL        & .889\,(\textit{.164}) & .623\,(\textit{.171}) & .704\,(\textit{.111}) & .679\,(\textit{.028}) & .977\,(\textit{.060}) & .560\,(\textit{.120}) & .705\,(\textit{.094}) & .740\,(\textit{.025}) \\
 & C LASSO      & .914\,(\textit{.158}) & .579\,(\textit{.151}) & .699\,(\textit{.136}) & .692\,(\textit{.036}) & .966\,(\textit{.074}) & .566\,(\textit{.118}) & .705\,(\textit{.088}) & .734\,(\textit{.022}) \\
 \midrule
-\multirow{3}{*}{S2}
-& PRIMED & \textbf{.923}\,(\textit{.123}) & .617\,(\textit{.131}) & \textbf{.727}\,(\textit{.098}) & \textbf{.698}\,(\textit{.026}) & \textbf{.977}\,(\textit{.073}) & \textbf{.608}\,(\textit{.126}) & \textbf{.740}\,(\textit{.093}) & \textbf{.754}\,(\textit{.022}) \\
-& CD GL        & .874\,(\textit{.177}) & \textbf{.635}\,(\textit{.180}) & .704\,(\textit{.114}) & .677\,(\textit{.029}) & .977\,(\textit{.053}) & .558\,(\textit{.114}) & .704\,(\textit{.088}) & .739\,(\textit{.024}) \\
+\multicolumn{10}{l}{\textit{DGP~2 ($\gamma = 0$), S2: noise present}} \\[2pt]
+& PRIMED & \textbf{.923}\,(\textit{.123}) & .621\,(\textit{.134}) & \textbf{.730}\,(\textit{.100}) & \textbf{.696}\,(\textit{.027}) & \textbf{.977}\,(\textit{.073}) & \textbf{.615}\,(\textit{.132}) & \textbf{.745}\,(\textit{.098}) & \textbf{.752}\,(\textit{.022}) \\
+& CD GL        & .874\,(\textit{.177}) & \textbf{.635}\,(\textit{.180}) & .704\,(\textit{.114}) & .677\,(\textit{.029}) & \textbf{.977}\,(\textit{.053}) & .558\,(\textit{.114}) & .704\,(\textit{.088}) & .739\,(\textit{.024}) \\
 & C LASSO      & .914\,(\textit{.158}) & .576\,(\textit{.151}) & .697\,(\textit{.136}) & .693\,(\textit{.036}) & .966\,(\textit{.074}) & .565\,(\textit{.104}) & .705\,(\textit{.079}) & .735\,(\textit{.021}) \\
 \botrule
 \end{tabular*}
@@ -466,47 +453,16 @@ At $\mathrm{SNR} = 1.0$ (S2), PRIMED achieves F1 of $.740$ versus $.704$ (CD~GL)
 %%-------------------------------------------------------------------
 
 Using the same $K = 20$ structure as Section~\ref{sec:noise_sim}, we vary $\tau \in \{0.3, 0.6, 0.9\}$ under all four DGP$\times$scenario combinations.
-As $\tau$ increases, subject-specific noise $\varepsilon_{ik}$ dominates the dispersion channel: at $\tau = 0.9$, $\mathrm{Var}(\sigma_k)$ is roughly $11$ times its value at $\tau = 0.3$, making $S_k$ a much noisier proxy for $\sigma_{ik}$.
+As $\tau$ increases, subject-specific noise $\varepsilon_{ik}$ dominates the dispersion channel: at $\tau = 0.9$, $\mathrm{Var}(\sigma_k)$ increases by roughly an order of magnitude relative to $\tau = 0.3$, making $S_k$ a much noisier proxy for $\sigma_{ik}$.
 The coefficient $c$ is recalibrated at each $(\tau, \mathrm{SNR})$ combination to hold SNR constant, so that any change in performance is due to $\tau$ rather than signal strength.
 
-Table~\ref{tab:high_tau} reports F1 for DGP~1 (S2: noise present).
-C~LASSO's F1 degrades sharply as $\tau$ increases: at $\mathrm{SNR} = 0.5$, F1 drops from $.688$ ($\tau = 0.3$) to $.286$ ($\tau = 0.9$).
-PRIMED maintains competitive or highest F1 across $\tau$ levels (Figure~\ref{fig:tau_f1}).
-At $\mathrm{SNR} = 1.0$, PRIMED achieves F1 of $.717/.712/.700$ versus CD~GL's $.701/.681/.683$.
-
-Table~\ref{tab:high_tau_full} extends this analysis to all four DGP$\times$scenario combinations.
+Table~\ref{tab:high_tau_full} reports F1 scores across all four DGP$\times$scenario combinations and Figure~\ref{fig:tau_f1} visualizes the trends.
+Under DGP~1, C~LASSO's F1 degrades sharply as $\tau$ increases: at $\mathrm{SNR} = 0.5$ (S2), F1 drops from $.688$ ($\tau = 0.3$) to $.286$ ($\tau = 0.9$).
+At $\mathrm{SNR} = 0.5$ (S2), CD~GL achieves the highest F1 across all $\tau$ levels ($.705/.686/.668$), outperforming PRIMED ($.699/.675/.628$).
+At $\mathrm{SNR} = 1.0$ (S2), PRIMED achieves the highest F1 across all $\tau$ levels: $.721/.717/.709$ versus CD~GL's $.701/.681/.683$.
 Under DGP~1 (S1), the pattern mirrors S2 with slightly higher absolute F1 values.
 Under DGP~2 ($\gamma = 0$), PRIMED maintains the highest F1 at $\tau \leq 0.6$; at $\tau = 0.9$ with $\mathrm{SNR} = 0.5$, all methods perform similarly (F1 $\approx .55$--.59), reflecting the inherent difficulty of the regime.
 Notably, C~LASSO does not collapse under DGP~2 as it does under DGP~1, because the outcome signal resides entirely in the consensus channel when $\gamma = 0$.
-
-\begin{table}[h]
-\caption{Sensitivity to $\tau$: DGP~1 ($\gamma \neq 0$, $K{=}20$, S2)}\label{tab:high_tau}
-\footnotesize
-\renewcommand{\arraystretch}{1.05}
-\setlength{\tabcolsep}{1.5pt}
-\begin{tabular*}{\textwidth}{@{\extracolsep\fill}ll ccc ccc ccc ccc}
-\toprule
-& & \multicolumn{3}{@{}c@{}}{TPR} & \multicolumn{3}{@{}c@{}}{PPV} & \multicolumn{3}{@{}c@{}}{F1} & \multicolumn{3}{@{}c@{}}{AUC} \\
-\cmidrule{3-5}\cmidrule{6-8}\cmidrule{9-11}\cmidrule{12-14}
-& & $\tau{=}.3$ & $\tau{=}.6$ & $\tau{=}.9$
-& $\tau{=}.3$ & $\tau{=}.6$ & $\tau{=}.9$
-& $\tau{=}.3$ & $\tau{=}.6$ & $\tau{=}.9$
-& $\tau{=}.3$ & $\tau{=}.6$ & $\tau{=}.9$ \\
-\midrule
-\multirow{3}{*}{SNR${=}0.5$}
-& PRIMED & .909 & .860 & .800 & .584 & \textbf{.592} & .562 & .699 & .679 & .628 & \textbf{.695} & \textbf{.678} & .652 \\
-& CD GL   & .891 & \textbf{.874} & \textbf{.849} & \textbf{.608} & .591 & \textbf{.573} & \textbf{.705} & \textbf{.686} & \textbf{.668} & .683 & .675 & \textbf{.653} \\
-& C LASSO & \textbf{.914} & .694 & .286 & .571 & .537 & .353 & .688 & .579 & .286 & .688 & .623 & .537 \\
-\midrule
-\multirow{3}{*}{SNR${=}1.0$}
-& PRIMED & \textbf{.983} & .969 & .963 & \textbf{.580} & .577 & \textbf{.565} & \textbf{.717} & \textbf{.712} & \textbf{.700} & \textbf{.763} & \textbf{.752} & \textbf{.733} \\
-& CD GL   & .971 & \textbf{.980} & \textbf{.966} & .559 & .530 & .540 & .701 & .681 & .683 & .750 & .747 & .726 \\
-& C LASSO & .974 & .866 & .443 & .558 & \textbf{.582} & .452 & .703 & .682 & .405 & .742 & .675 & .569 \\
-\botrule
-\end{tabular*}
-\footnotetext{Mean over $B = 50$ replications; best in bold. SD values available in Table~\ref{tab:high_tau_full}.}
-\end{table}
-
 
 \begin{table}[h]
 \caption{Sensitivity to $\tau$: all DGP$\times$scenario combinations ($K{=}20$)}\label{tab:high_tau_full}
@@ -521,22 +477,22 @@ Notably, C~LASSO does not collapse under DGP~2 as it does under DGP~1, because t
 & $\tau{=}.3$ & $\tau{=}.6$ & $\tau{=}.9$ \\
 \midrule
 \multicolumn{8}{l}{\textit{DGP~1 ($\gamma \neq 0$), S1}} \\[2pt]
-& PRIMED   & \textbf{.703}\,(\textit{.130}) & \textbf{.704}\,(\textit{.103}) & .631\,(\textit{.194}) & \textbf{.730}\,(\textit{.101}) & \textbf{.714}\,(\textit{.086}) & \textbf{.711}\,(\textit{.116}) \\
+& PRIMED   & \textbf{.703}\,(\textit{.130}) & \textbf{.703}\,(\textit{.108}) & .631\,(\textit{.197}) & \textbf{.733}\,(\textit{.105}) & \textbf{.719}\,(\textit{.085}) & \textbf{.721}\,(\textit{.113}) \\
 & CD GL    & .700\,(\textit{.090}) & .688\,(\textit{.087}) & \textbf{.670}\,(\textit{.176}) & .702\,(\textit{.093}) & .689\,(\textit{.087}) & .685\,(\textit{.092}) \\
 & C LASSO  & .685\,(\textit{.099}) & .585\,(\textit{.220}) & .285\,(\textit{.273}) & .699\,(\textit{.087}) & .671\,(\textit{.174}) & .420\,(\textit{.256}) \\
 \midrule
 \multicolumn{8}{l}{\textit{DGP~1 ($\gamma \neq 0$), S2}} \\[2pt]
-& PRIMED   & .699\,(\textit{.129}) & .679\,(\textit{.136}) & .628\,(\textit{.195}) & \textbf{.717}\,(\textit{.100}) & \textbf{.712}\,(\textit{.091}) & \textbf{.700}\,(\textit{.110}) \\
+& PRIMED   & .699\,(\textit{.128}) & .675\,(\textit{.140}) & .628\,(\textit{.195}) & \textbf{.721}\,(\textit{.103}) & \textbf{.717}\,(\textit{.088}) & \textbf{.709}\,(\textit{.106}) \\
 & CD GL    & \textbf{.705}\,(\textit{.098}) & \textbf{.686}\,(\textit{.088}) & \textbf{.668}\,(\textit{.176}) & .701\,(\textit{.090}) & .681\,(\textit{.085}) & .683\,(\textit{.091}) \\
 & C LASSO  & .688\,(\textit{.096}) & .579\,(\textit{.234}) & .286\,(\textit{.268}) & .703\,(\textit{.087}) & .682\,(\textit{.168}) & .405\,(\textit{.259}) \\
 \midrule
 \multicolumn{8}{l}{\textit{DGP~2 ($\gamma = 0$), S1}} \\[2pt]
-& PRIMED   & \textbf{.739}\,(\textit{.095}) & \textbf{.722}\,(\textit{.127}) & \textbf{.620}\,(\textit{.173}) & \textbf{.758}\,(\textit{.091}) & \textbf{.763}\,(\textit{.098}) & \textbf{.694}\,(\textit{.123}) \\
+& PRIMED   & \textbf{.739}\,(\textit{.094}) & \textbf{.720}\,(\textit{.128}) & \textbf{.605}\,(\textit{.178}) & \textbf{.759}\,(\textit{.088}) & \textbf{.772}\,(\textit{.096}) & \textbf{.665}\,(\textit{.177}) \\
 & CD GL    & .704\,(\textit{.111}) & .655\,(\textit{.124}) & .527\,(\textit{.219}) & .705\,(\textit{.094}) & .678\,(\textit{.165}) & .563\,(\textit{.241}) \\
 & C LASSO  & .699\,(\textit{.136}) & .649\,(\textit{.202}) & .546\,(\textit{.267}) & .705\,(\textit{.088}) & .670\,(\textit{.146}) & .581\,(\textit{.209}) \\
 \midrule
 \multicolumn{8}{l}{\textit{DGP~2 ($\gamma = 0$), S2}} \\[2pt]
-& PRIMED   & \textbf{.727}\,(\textit{.098}) & \textbf{.692}\,(\textit{.136}) & \textbf{.588}\,(\textit{.191}) & \textbf{.740}\,(\textit{.093}) & \textbf{.753}\,(\textit{.091}) & \textbf{.665}\,(\textit{.145}) \\
+& PRIMED   & \textbf{.730}\,(\textit{.100}) & \textbf{.691}\,(\textit{.138}) & \textbf{.593}\,(\textit{.186}) & \textbf{.745}\,(\textit{.098}) & \textbf{.748}\,(\textit{.105}) & \textbf{.650}\,(\textit{.188}) \\
 & CD GL    & .704\,(\textit{.114}) & .632\,(\textit{.172}) & .550\,(\textit{.225}) & .704\,(\textit{.088}) & .659\,(\textit{.198}) & .560\,(\textit{.241}) \\
 & C LASSO  & .697\,(\textit{.136}) & .669\,(\textit{.179}) & .558\,(\textit{.254}) & .705\,(\textit{.079}) & .672\,(\textit{.143}) & .584\,(\textit{.209}) \\
 \botrule
@@ -555,21 +511,42 @@ All other settings match Section~\ref{sec:noise_sim}: $\tau = 0.3$, $m = 5$, $B 
 The number of active and noise features is held fixed at 7 and 3, respectively; additional features beyond $K = 20$ are null ($\alpha_k = \beta_k = \gamma_k = 0$).
 The coefficient $c$ and intercept $\beta_0$ are recalibrated for each SNR.
 
-Tables~\ref{tab:middim} and \ref{tab:highdim} report F1 and AUC for DGP~1.
-PRIMED maintains a consistent AUC advantage across dimensionalities, though its F1 advantage is not strictly monotonic across $K$.
-At $\mathrm{SNR} = 1.0$ (S2), PRIMED achieves F1 of $.585$ ($K = 50$) and $.500$ ($K = 100$), compared with $.619/.477$ (CD~GL) and $.546/.497$ (C~LASSO).
-Figure~\ref{fig:dim_f1} visualizes the F1 trend across $K \in \{20, 50, 100\}$.
-
-Tables~\ref{tab:middim_dgp2} and \ref{tab:highdim_dgp2} report the corresponding results for DGP~2 ($\gamma = 0$).
-The pattern is consistent: PRIMED achieves the highest F1 across all settings.
-At $K = 100$, $\mathrm{SNR} = 1.0$ (S2), PRIMED achieves F1 of $.591$ versus $.481$ (CD~GL) and $.482$ (C~LASSO), a gap exceeding $.100$, consistent with the pattern under DGP~1.
-The advantage is driven by PRIMED's higher PPV, reflecting its ability to separate the dispersion structure from outcome relevance even when $\gamma = 0$.
+Table~\ref{tab:highdim} reports F1 and AUC under S2 (noise present) for both DGPs, and Figure~\ref{fig:dim_f1} visualizes the F1 trends.
+Under DGP~1, PRIMED maintains a consistent AUC advantage across dimensionalities; at $\mathrm{SNR} = 1.0$, PRIMED achieves F1 of $.591$ ($K = 50$) and $.505$ ($K = 100$), compared with $.619/.477$ (CD~GL) and $.546/.497$ (C~LASSO).
+Under DGP~2 ($\gamma = 0$), the pattern is more pronounced: at $K = 100$, $\mathrm{SNR} = 1.0$, PRIMED achieves F1 of $.603$ versus $.481$ (CD~GL) and $.482$ (C~LASSO), a gap exceeding $.100$, driven primarily by higher PPV.
 
 In addition to F1 and AUC, we assess variable selection stability via the Jaccard index, averaged over all $\binom{B}{2}$ pairs of replications.
 Table~\ref{tab:sim_jaccard} reports the results for the S2 scenario (noise present) under DGP~1 at $\mathrm{SNR} = 1.0$.
-PRIMED achieves the highest Jaccard index at all dimensionalities: $0.507$ ($K = 20$), $0.352$ ($K = 50$), and $0.228$ ($K = 100$), compared to $0.485/0.306/0.182$ for CD~GL and $0.416/0.318/0.192$ for C~LASSO.
-All methods show declining stability with increasing $K$, as expected when the number of candidate features grows, but PRIMED's advantage amplifies in higher dimensions: the gap over CD~GL increases from $+0.022$ at $K = 20$ to $+0.046$ at $K = 100$.
+PRIMED achieves the highest Jaccard index at all dimensionalities: $0.585$ ($K = 20$), $0.355$ ($K = 50$), and $0.248$ ($K = 100$), compared to $0.571/0.352/0.217$ for CD~GL and $0.560/0.339/0.218$ for C~LASSO.
+All methods show declining stability with increasing $K$, as expected when the number of candidate features grows, but PRIMED's advantage amplifies in higher dimensions: the gap over CD~GL increases from $+0.014$ at $K = 20$ to $+0.031$ at $K = 100$.
 
+
+\begin{table}[h]
+\caption{High-dimensional simulation ($n{=}200$, $\tau{=}0.3$, S2: noise present)}\label{tab:highdim}
+\footnotesize
+\renewcommand{\arraystretch}{1.05}
+\setlength{\tabcolsep}{2pt}
+\begin{tabular*}{\textwidth}{@{\extracolsep\fill}ll cccc cccc}
+\toprule
+& & \multicolumn{4}{@{}c@{}}{$K = 50$} & \multicolumn{4}{@{}c@{}}{$K = 100$} \\
+\cmidrule{3-6}\cmidrule{7-10}
+& & \multicolumn{2}{@{}c@{}}{SNR = 0.5} & \multicolumn{2}{@{}c@{}}{SNR = 1.0} & \multicolumn{2}{@{}c@{}}{SNR = 0.5} & \multicolumn{2}{@{}c@{}}{SNR = 1.0} \\
+\cmidrule{3-4}\cmidrule{5-6}\cmidrule{7-8}\cmidrule{9-10}
+& & F1 & AUC & F1 & AUC & F1 & AUC & F1 & AUC \\
+\midrule
+\multicolumn{10}{l}{\textit{DGP~1 ($\gamma \neq 0$)}} \\[2pt]
+& PRIMED & \textbf{.583}\,(\textit{.124}) & \textbf{.675}\,(\textit{.036}) & .591\,(\textit{.136}) & \textbf{.745}\,(\textit{.034}) & .433\,(\textit{.180}) & \textbf{.635}\,(\textit{.057}) & \textbf{.505}\,(\textit{.129}) & \textbf{.723}\,(\textit{.036}) \\
+& CD GL        & .559\,(\textit{.173}) & .650\,(\textit{.045}) & \textbf{.619}\,(\textit{.114}) & .734\,(\textit{.031}) & .398\,(\textit{.187}) & .615\,(\textit{.056}) & .477\,(\textit{.110}) & .699\,(\textit{.042}) \\
+& C LASSO      & .516\,(\textit{.133}) & .665\,(\textit{.041}) & .546\,(\textit{.143}) & .717\,(\textit{.047}) & \textbf{.439}\,(\textit{.184}) & .623\,(\textit{.052}) & .497\,(\textit{.157}) & .689\,(\textit{.052}) \\
+\midrule
+\multicolumn{10}{l}{\textit{DGP~2 ($\gamma = 0$)}} \\[2pt]
+& PRIMED & \textbf{.624}\,(\textit{.121}) & \textbf{.681}\,(\textit{.033}) & \textbf{.676}\,(\textit{.116}) & \textbf{.740}\,(\textit{.029}) & \textbf{.491}\,(\textit{.166}) & \textbf{.644}\,(\textit{.045}) & \textbf{.603}\,(\textit{.127}) & \textbf{.722}\,(\textit{.032}) \\
+& CD GL        & .491\,(\textit{.183}) & .643\,(\textit{.053}) & .607\,(\textit{.115}) & .721\,(\textit{.032}) & .383\,(\textit{.195}) & .609\,(\textit{.057}) & .481\,(\textit{.136}) & .682\,(\textit{.043}) \\
+& C LASSO      & .572\,(\textit{.133}) & .675\,(\textit{.034}) & .590\,(\textit{.130}) & .710\,(\textit{.032}) & .403\,(\textit{.179}) & .629\,(\textit{.053}) & .482\,(\textit{.160}) & .675\,(\textit{.050}) \\
+\botrule
+\end{tabular*}
+\footnotetext{F1 and AUC (\textit{SD}) over $B = 50$ replications; best mean in bold. S1 results are similar and omitted for brevity.}
+\end{table}
 
 \begin{table}[h]
 \caption{Variable selection stability (Jaccard index) across dimensionality}\label{tab:sim_jaccard}
@@ -579,114 +556,12 @@ All methods show declining stability with increasing $K$, as expected when the n
 \toprule
 Method & $K = 20$ & $K = 50$ & $K = 100$ \\
 \midrule
-PRIMED  & $\mathbf{0.507}$ & $\mathbf{0.352}$ & $\mathbf{0.228}$ \\
-CD~GL   & $0.485$ & $0.306$ & $0.182$ \\
-C~LASSO & $0.416$ & $0.318$ & $0.192$ \\
+PRIMED  & $\mathbf{0.585}$ & $\mathbf{0.355}$ & $\mathbf{0.248}$ \\
+CD~GL   & $0.571$ & $0.352$ & $0.217$ \\
+C~LASSO & $0.560$ & $0.339$ & $0.218$ \\
 \botrule
 \end{tabular*}
 \footnotetext{DGP~1 ($\gamma \neq 0$), S2, $\mathrm{SNR} = 1.0$. Jaccard index averaged over all $\binom{50}{2} = 1{,}225$ pairs of $B = 50$ replications.}
-\end{table}
-
-
-\begin{table}[h]
-\caption{Mid-dimensional simulation: DGP~1 ($\gamma \neq 0$, $K{=}50$, $n{=}200$, $\tau{=}0.3$)}\label{tab:middim}
-\footnotesize
-\renewcommand{\arraystretch}{1.05}
-\setlength{\tabcolsep}{1.5pt}
-\begin{tabular*}{\textwidth}{@{\extracolsep\fill}ll cccc cccc}
-\toprule
-& & \multicolumn{4}{@{}c@{}}{SNR = 0.5} & \multicolumn{4}{@{}c@{}}{SNR = 1.0} \\
-\cmidrule{3-6}\cmidrule{7-10}
-& & TPR & PPV & F1 & AUC & TPR & PPV & F1 & AUC \\
-\midrule
-\multirow{3}{*}{S1}
-& PRIMED & \textbf{.871}\,(\textit{.198}) & .474\,(\textit{.168}) & \textbf{.579}\,(\textit{.129}) & \textbf{.677}\,(\textit{.036}) & \textbf{.954}\,(\textit{.134}) & .443\,(\textit{.150}) & .580\,(\textit{.125}) & \textbf{.747}\,(\textit{.034}) \\
-& CD GL        & .780\,(\textit{.249}) & \textbf{.501}\,(\textit{.203}) & .564\,(\textit{.150}) & .654\,(\textit{.039}) & .937\,(\textit{.120}) & \textbf{.478}\,(\textit{.157}) & \textbf{.612}\,(\textit{.120}) & .733\,(\textit{.031}) \\
-& C LASSO      & .826\,(\textit{.222}) & .420\,(\textit{.163}) & .525\,(\textit{.135}) & .665\,(\textit{.041}) & .906\,(\textit{.188}) & .448\,(\textit{.184}) & .556\,(\textit{.120}) & .720\,(\textit{.036}) \\
-\midrule
-\multirow{3}{*}{S2}
-& PRIMED & \textbf{.871}\,(\textit{.198}) & .471\,(\textit{.167}) & \textbf{.576}\,(\textit{.127}) & \textbf{.678}\,(\textit{.036}) & \textbf{.954}\,(\textit{.134}) & .450\,(\textit{.160}) & .585\,(\textit{.133}) & \textbf{.747}\,(\textit{.034}) \\
-& CD GL        & .774\,(\textit{.263}) & \textbf{.494}\,(\textit{.222}) & .559\,(\textit{.173}) & .650\,(\textit{.045}) & .934\,(\textit{.109}) & \textbf{.482}\,(\textit{.144}) & \textbf{.619}\,(\textit{.114}) & .734\,(\textit{.031}) \\
-& C LASSO      & .823\,(\textit{.221}) & .411\,(\textit{.163}) & .516\,(\textit{.133}) & .665\,(\textit{.041}) & .886\,(\textit{.225}) & .444\,(\textit{.196}) & .546\,(\textit{.143}) & .717\,(\textit{.047}) \\
-\botrule
-\end{tabular*}
-\footnotetext{Mean (\textit{SD}) over $B = 50$ replications; best mean in bold.}
-\end{table}
-
-\begin{table}[h]
-\caption{High-dimensional simulation: DGP~1 ($\gamma \neq 0$, $K{=}100$, $n{=}200$, $\tau{=}0.3$)}\label{tab:highdim}
-\footnotesize
-\renewcommand{\arraystretch}{1.05}
-\setlength{\tabcolsep}{1.5pt}
-\begin{tabular*}{\textwidth}{@{\extracolsep\fill}ll cccc cccc}
-\toprule
-& & \multicolumn{4}{@{}c@{}}{SNR = 0.5} & \multicolumn{4}{@{}c@{}}{SNR = 1.0} \\
-\cmidrule{3-6}\cmidrule{7-10}
-& & TPR & PPV & F1 & AUC & TPR & PPV & F1 & AUC \\
-\midrule
-\multirow{3}{*}{S1}
-& PRIMED & \textbf{.646}\,(\textit{.319}) & .418\,(\textit{.256}) & .430\,(\textit{.181}) & \textbf{.636}\,(\textit{.057}) & \textbf{.909}\,(\textit{.135}) & .369\,(\textit{.149}) & \textbf{.503}\,(\textit{.124}) & \textbf{.727}\,(\textit{.035}) \\
-& CD GL        & .586\,(\textit{.296}) & .368\,(\textit{.228}) & .401\,(\textit{.186}) & .615\,(\textit{.056}) & .869\,(\textit{.175}) & .356\,(\textit{.156}) & .469\,(\textit{.112}) & .700\,(\textit{.041}) \\
-& C LASSO      & .617\,(\textit{.280}) & \textbf{.422}\,(\textit{.261}) & \textbf{.439}\,(\textit{.184}) & .623\,(\textit{.052}) & .826\,(\textit{.215}) & \textbf{.410}\,(\textit{.212}) & .501\,(\textit{.158}) & .689\,(\textit{.053}) \\
-\midrule
-\multirow{3}{*}{S2}
-& PRIMED & \textbf{.654}\,(\textit{.315}) & .422\,(\textit{.254}) & .435\,(\textit{.180}) & \textbf{.636}\,(\textit{.057}) & \textbf{.909}\,(\textit{.135}) & .366\,(\textit{.153}) & \textbf{.500}\,(\textit{.129}) & \textbf{.726}\,(\textit{.035}) \\
-& CD GL        & .589\,(\textit{.294}) & .359\,(\textit{.224}) & .398\,(\textit{.187}) & .615\,(\textit{.056}) & .866\,(\textit{.177}) & .364\,(\textit{.154}) & .477\,(\textit{.110}) & .699\,(\textit{.042}) \\
-& C LASSO      & .617\,(\textit{.283}) & \textbf{.426}\,(\textit{.263}) & \textbf{.439}\,(\textit{.184}) & .623\,(\textit{.052}) & .829\,(\textit{.210}) & \textbf{.396}\,(\textit{.194}) & .497\,(\textit{.157}) & .689\,(\textit{.052}) \\
-\botrule
-\end{tabular*}
-\footnotetext{Mean (\textit{SD}) over $B = 50$ replications; best mean in bold.}
-\end{table}
-
-
-\begin{table}[h]
-\caption{Mid-dimensional simulation: DGP~2 ($\gamma = 0$, $K{=}50$, $n{=}200$, $\tau{=}0.3$)}\label{tab:middim_dgp2}
-\footnotesize
-\renewcommand{\arraystretch}{1.05}
-\setlength{\tabcolsep}{1.5pt}
-\begin{tabular*}{\textwidth}{@{\extracolsep\fill}ll cccc cccc}
-\toprule
-& & \multicolumn{4}{@{}c@{}}{SNR = 0.5} & \multicolumn{4}{@{}c@{}}{SNR = 1.0} \\
-\cmidrule{3-6}\cmidrule{7-10}
-& & TPR & PPV & F1 & AUC & TPR & PPV & F1 & AUC \\
-\midrule
-\multirow{3}{*}{S1}
-& PRIMED & \textbf{.871}\,(\textit{.148}) & \textbf{.518}\,(\textit{.169}) & \textbf{.623}\,(\textit{.115}) & \textbf{.684}\,(\textit{.035}) & \textbf{.949}\,(\textit{.107}) & \textbf{.538}\,(\textit{.166}) & \textbf{.665}\,(\textit{.120}) & \textbf{.746}\,(\textit{.029}) \\
-& CD GL        & .686\,(\textit{.294}) & .500\,(\textit{.273}) & .497\,(\textit{.186}) & .643\,(\textit{.052}) & .917\,(\textit{.112}) & .478\,(\textit{.156}) & .609\,(\textit{.113}) & .720\,(\textit{.033}) \\
-& C LASSO      & .829\,(\textit{.185}) & .486\,(\textit{.204}) & .570\,(\textit{.135}) & .674\,(\textit{.034}) & .894\,(\textit{.147}) & .479\,(\textit{.193}) & .592\,(\textit{.135}) & .710\,(\textit{.033}) \\
-\midrule
-\multirow{3}{*}{S2}
-& PRIMED & \textbf{.874}\,(\textit{.140}) & \textbf{.521}\,(\textit{.177}) & \textbf{.624}\,(\textit{.119}) & \textbf{.684}\,(\textit{.034}) & \textbf{.951}\,(\textit{.106}) & \textbf{.533}\,(\textit{.156}) & \textbf{.663}\,(\textit{.113}) & \textbf{.744}\,(\textit{.028}) \\
-& CD GL        & .686\,(\textit{.296}) & .487\,(\textit{.268}) & .491\,(\textit{.183}) & .643\,(\textit{.053}) & .917\,(\textit{.116}) & .473\,(\textit{.149}) & .607\,(\textit{.115}) & .721\,(\textit{.032}) \\
-& C LASSO      & .834\,(\textit{.194}) & .490\,(\textit{.204}) & .572\,(\textit{.133}) & .675\,(\textit{.034}) & .891\,(\textit{.143}) & .473\,(\textit{.180}) & .590\,(\textit{.130}) & .710\,(\textit{.032}) \\
-\botrule
-\end{tabular*}
-\footnotetext{Mean (\textit{SD}) over $B = 50$ replications; best mean in bold.}
-\end{table}
-
-\begin{table}[h]
-\caption{High-dimensional simulation: DGP~2 ($\gamma = 0$, $K{=}100$, $n{=}200$, $\tau{=}0.3$)}\label{tab:highdim_dgp2}
-\footnotesize
-\renewcommand{\arraystretch}{1.05}
-\setlength{\tabcolsep}{1.5pt}
-\begin{tabular*}{\textwidth}{@{\extracolsep\fill}ll cccc cccc}
-\toprule
-& & \multicolumn{4}{@{}c@{}}{SNR = 0.5} & \multicolumn{4}{@{}c@{}}{SNR = 1.0} \\
-\cmidrule{3-6}\cmidrule{7-10}
-& & TPR & PPV & F1 & AUC & TPR & PPV & F1 & AUC \\
-\midrule
-\multirow{3}{*}{S1}
-& PRIMED & \textbf{.700}\,(\textit{.280}) & \textbf{.476}\,(\textit{.230}) & \textbf{.495}\,(\textit{.168}) & \textbf{.647}\,(\textit{.046}) & \textbf{.923}\,(\textit{.120}) & \textbf{.471}\,(\textit{.183}) & \textbf{.595}\,(\textit{.135}) & \textbf{.729}\,(\textit{.028}) \\
-& CD GL        & .531\,(\textit{.315}) & .411\,(\textit{.254}) & .394\,(\textit{.187}) & .611\,(\textit{.055}) & .780\,(\textit{.212}) & .420\,(\textit{.228}) & .481\,(\textit{.132}) & .682\,(\textit{.042}) \\
-& C LASSO      & .620\,(\textit{.294}) & .364\,(\textit{.213}) & .407\,(\textit{.179}) & .629\,(\textit{.053}) & .780\,(\textit{.242}) & .394\,(\textit{.209}) & .479\,(\textit{.159}) & .676\,(\textit{.050}) \\
-\midrule
-\multirow{3}{*}{S2}
-& PRIMED & \textbf{.694}\,(\textit{.283}) & \textbf{.470}\,(\textit{.225}) & \textbf{.485}\,(\textit{.165}) & \textbf{.647}\,(\textit{.045}) & \textbf{.926}\,(\textit{.116}) & \textbf{.461}\,(\textit{.170}) & \textbf{.591}\,(\textit{.127}) & \textbf{.728}\,(\textit{.029}) \\
-& CD GL        & .514\,(\textit{.319}) & .402\,(\textit{.261}) & .383\,(\textit{.195}) & .609\,(\textit{.057}) & .777\,(\textit{.218}) & .421\,(\textit{.228}) & .481\,(\textit{.136}) & .682\,(\textit{.043}) \\
-& C LASSO      & .626\,(\textit{.298}) & .359\,(\textit{.214}) & .403\,(\textit{.179}) & .629\,(\textit{.053}) & .786\,(\textit{.242}) & .397\,(\textit{.210}) & .482\,(\textit{.160}) & .675\,(\textit{.050}) \\
-\botrule
-\end{tabular*}
-\footnotetext{Mean (\textit{SD}) over $B = 50$ replications; best mean in bold.}
 \end{table}
 
 
@@ -719,11 +594,10 @@ The implications of these nonlinear patterns for model specification are explore
 \subsubsection{Model comparison}
 
 Table~\ref{tab:app_coefs} compares the variables selected by PRIMED, CD~GL, and C~LASSO.
-PRIMED selects two ordinal features: Fibrosis grading ($\hat\alpha = -0.17$, $\hat\beta = -1.00$, $\hat\gamma = 0.09$) and Pre\_DWI ($\hat\alpha = -0.46$, $\hat\beta = 0.73$, $\hat\gamma = -0.14$).
-CD~GL selects three variables: Fibrosis grading, ESGAR, and the binary feature Split scar.
-Pre\_DWI is selected by PRIMED but not by CD~GL or C~LASSO; conversely, ESGAR and Split scar are selected by both CD~GL and C~LASSO but dropped by PRIMED.
-C~LASSO, which uses only the consensus channel, selects Fibrosis grading ($\hat\beta = -0.66$), ESGAR ($\hat\beta = -0.10$), and the binary feature Split scar ($\hat\delta = 1.36$) as consensus-only predictors (Table~\ref{tab:app_coefs}).
-
+PRIMED selects two ordinal features: Fibrosis grading ($\hat\alpha = -0.30$, $\hat\beta = -0.83$, $\hat\gamma = -0.01$) and ESGAR ($\hat\alpha = -0.38$, $\hat\beta = -0.19$, $\hat\gamma = -0.09$).
+CD~GL selects the same two ordinal features plus the binary feature Split scar.
+C~LASSO selects four ordinal features (Fibrosis grading, Pre\_DWI, Post\_ADC, ESGAR) and Split scar; using only the consensus channel, it requires more features to achieve comparable prediction.
+Fibrosis grading and ESGAR are selected by all three methods, while Pre\_DWI and Post\_ADC are selected only by C~LASSO.
 
 \begin{table}[h]
 \caption{Variable selection comparison on rectal cancer data}\label{tab:app_coefs}
@@ -735,13 +609,14 @@ C~LASSO, which uses only the consensus channel, selects Fibrosis grading ($\hat\
 \cmidrule{3-4}\cmidrule{5-6}\cmidrule{7-7}
 & Feature & $\hat\beta$ & $\hat\gamma$ & $\hat\beta$ & $\hat\gamma$ & $\hat\beta$ \\
 \midrule
-\multirow{3}{*}{\rotatebox{90}{Selected}}
-& Fibrosis grading    & $-1.00$& $0.09$  & $-0.40$& $-0.10$ & $-0.66$ \\
-& Pre\_DWI            & $0.73$ & $-0.14$ &        &         &         \\
-& ESGAR               &        &         & $-0.55$& $-0.36$ & $-0.10$ \\
+\multirow{4}{*}{\rotatebox{90}{Ordinal}}
+& Fibrosis grading    & $-0.83$& $-0.01$ & $-0.42$& $-0.10$ & $-0.76$ \\
+& ESGAR               & $-0.19$& $-0.09$ & $-0.59$& $-0.40$ & $-0.42$ \\
+& Pre\_DWI            &        &         &        &         & $0.46$  \\
+& Post\_ADC           &        &         &        &         & $-0.29$ \\
 \midrule
 {Binary}
-& Split scar          & \multicolumn{2}{c}{} & \multicolumn{2}{c}{$\hat\delta = 2.56$} & $1.36$ \\
+& Split scar          & \multicolumn{2}{c}{} & \multicolumn{2}{c}{$\hat\delta = 2.65$} & $2.06$ \\
 \botrule
 \end{tabular*}
 \footnotetext{Only features selected by at least one method are shown. Empty cells indicate non-selection. PRIMED and CD~GL estimate $(\hat\beta, \hat\gamma)$ for ordinal features; C~LASSO estimates consensus-only $\hat\beta$. Binary features enter with a single coefficient $\hat\delta$.}
@@ -750,17 +625,18 @@ C~LASSO, which uses only the consensus channel, selects Fibrosis grading ($\hat\
 
 Table~\ref{tab:app_coefs} summarizes the estimated coefficients; the corresponding fitted models are:
 \begin{align*}
-  \text{PRIMED (linear):} \quad \hat p_i &= \mathrm{logit}^{-1}\!\bigl(\hat\beta_0 + \hat\beta_B\,\bar X_{i,B} + \hat\gamma_B\,\tilde S_{i,B} + \hat\beta_F\,\bar X_{i,F} + \hat\gamma_F\,\tilde S_{i,F}\bigr), \\
-  \text{CD\,GL:} \quad \hat p_i &= \mathrm{logit}^{-1}\!\bigl(\hat\beta_0 + \hat\beta_B\,\bar X_{i,B} + \hat\gamma_B\, S_{i,B} + \hat\beta_A\,\bar X_{i,A} + \hat\gamma_A\, S_{i,A} + \hat\delta_C\,\bar X_{i,C}\bigr), \\
-  \text{C\,LASSO:} \quad \hat p_i &= \mathrm{logit}^{-1}\!\bigl(\hat\beta_0 + \hat\beta_B\,\bar X_{i,B} + \hat\beta_A\,\bar X_{i,A} + \hat\delta_C\,\bar X_{i,C}\bigr),
+  \text{PRIMED:} \quad \hat p_i &= \mathrm{logit}^{-1}\!\bigl(\hat\beta_0 + \hat\beta_{\mathrm{Fib}}\,\bar X_{i,\mathrm{Fib}} + \hat\gamma_{\mathrm{Fib}}\,\tilde S_{i,\mathrm{Fib}} + \hat\beta_{\mathrm{ESG}}\,\bar X_{i,\mathrm{ESG}} + \hat\gamma_{\mathrm{ESG}}\,\tilde S_{i,\mathrm{ESG}}\bigr), \\
+  \text{CD\,GL:} \quad \hat p_i &= \mathrm{logit}^{-1}\!\bigl(\hat\beta_0 + \hat\beta_{\mathrm{Fib}}\,\bar X_{i,\mathrm{Fib}} + \hat\gamma_{\mathrm{Fib}}\, S_{i,\mathrm{Fib}} + \hat\beta_{\mathrm{ESG}}\,\bar X_{i,\mathrm{ESG}} + \hat\gamma_{\mathrm{ESG}}\, S_{i,\mathrm{ESG}} + \hat\delta_{\mathrm{SC}}\,\bar X_{i,\mathrm{SC}}\bigr), \\
+  \text{C\,LASSO:} \quad \hat p_i &= \mathrm{logit}^{-1}\!\bigl(\hat\beta_0 + \hat\beta_{\mathrm{Fib}}\,\bar X_{i,\mathrm{Fib}} + \hat\beta_{\mathrm{DWI}}\,\bar X_{i,\mathrm{DWI}} + \hat\beta_{\mathrm{ADC}}\,\bar X_{i,\mathrm{ADC}} + \hat\beta_{\mathrm{ESG}}\,\bar X_{i,\mathrm{ESG}} + \hat\delta_{\mathrm{SC}}\,\bar X_{i,\mathrm{SC}}\bigr),
 \end{align*}
-where $\tilde S_{i,k} = S_{i,k} - \hat\alpha_{0k} - \hat\alpha_k \bar X_{i,k}$ is the residual disagreement for feature $k$ under the linear dispersion model.
+where $\tilde S_{i,k} = S_{i,k} - \hat\alpha_{0k} - \hat\alpha_k \bar X_{i,k}$ is the residual disagreement for feature $k$, and subscripts denote Fibrosis grading (Fib), ESGAR (ESG), Pre\_DWI (DWI), Post\_ADC (ADC), and Split scar (SC).
 PRIMED uses residual disagreement $\tilde S_k$ (after removing the consensus--disagreement dependence), CD~GL uses raw disagreement $S_k$ alongside consensus, and C~LASSO uses only the consensus channel.
 
 Table~\ref{tab:app_auc} reports the training and external validation AUC.
 Prediction performance is measured by the area under the receiver operating characteristic curve (AUC): the training AUC is computed on Center~1 ($n = 50$) using the fitted probabilities from each method, and the external AUC is computed on Centers~2--3 ($n = 99$) by applying the trained model to the held-out centers without refitting.
-Training AUCs are similar across methods ($0.865$--$0.871$).
-CD~GL achieves the highest external AUC ($0.782$), followed by C~LASSO ($0.767$) and PRIMED ($0.753$).
+Training AUCs are similar across methods ($0.855$--$0.873$).
+CD~GL achieves the highest external AUC ($0.782$), followed by C~LASSO ($0.768$) and PRIMED ($0.767$).
+PRIMED achieves comparable external AUC to C~LASSO while using fewer variables (2 vs.\ 5).
 
 \begin{table}[h]
 \caption{Prediction performance on rectal cancer data (AUC)}\label{tab:app_auc}
@@ -770,27 +646,19 @@ CD~GL achieves the highest external AUC ($0.782$), followed by C~LASSO ($0.767$)
 \toprule
 Method & Variables selected & Training AUC & External AUC \\
 \midrule
-PRIMED       & 2 & $0.865$ & $0.753$ \\
+PRIMED       & 2 & $0.855$ & $0.767$ \\
 CD~GL        & 3 & $0.871$ & $\mathbf{0.782}$ \\
-C~LASSO      & 3 & $0.865$ & $0.767$ \\
+C~LASSO      & 5 & $0.873$ & $0.768$ \\
 \botrule
 \end{tabular*}
 \footnotetext{Training: Center~1 ($n = 50$); External: Centers~2--3 ($n = 99$).}
 \end{table}
 
 To verify that the consensus--disagreement relationship for the selected features is genuine, we fit separate OLS regressions of $S_k$ on $\bar X_k$ for each selected feature.
-Both show significant dispersion slopes: Pre\_DWI ($\hat\alpha_{\mathrm{OLS}} = -1.54$, $p < 0.001$) and Fibrosis grading ($\hat\alpha_{\mathrm{OLS}} = -0.17$, $p = 0.040$), confirming that the link is real and not an artifact of the joint estimation.
+Both show significant dispersion slopes: Fibrosis grading ($\hat\alpha_{\mathrm{OLS}} = -0.17$, $p = 0.040$) and ESGAR ($\hat\alpha_{\mathrm{OLS}} = -0.45$, $p < 0.001$), confirming that the link is real and not an artifact of the joint estimation.
 
-The OLS estimate for Pre\_DWI ($\hat\alpha_{\mathrm{OLS}} = -1.54$) differs substantially from the PRIMED joint estimate ($\hat\alpha = -0.46$ in Table~\ref{tab:app_coefs}).
-This discrepancy provides direct empirical evidence of the coupling gradient mechanism described in Section~\ref{sec:optimization}: because $\hat\gamma_F \neq 0$, the outcome loss pulls $\hat\alpha_F$ away from the OLS solution toward a value that jointly optimizes both the dispersion and outcome objectives.
-For Fibrosis grading, where $|\hat\gamma|$ is small ($0.09$), the PRIMED estimate ($\hat\alpha = -0.17$) closely matches the OLS value, consistent with the theoretical prediction that the coupling gradient vanishes when $\gamma_k \approx 0$.
-
-Pre\_DWI warrants separate comment.
-PRIMED's penalized estimation selects this feature with a well-defined group norm ($\|(\hat\beta, \hat\gamma)\|_2 = 0.74$), demonstrating that it carries outcome-relevant information through both the consensus and residual disagreement channels.
-In the unpenalized refit, however, the near-perfect consensus--disagreement correlation ($r = -0.88$) induces collinearity between $\bar X_k$ and $\tilde S_k$, leading to inflated standard errors for the individual coefficients.
-This distinction between selection and estimation stability is expected: PRIMED's group penalty regularizes the coefficient estimates during selection, whereas the unpenalized refit exposes the inherent collinearity.
-The selection itself remains reliable; what is unstable is the decomposition of the effect into $\beta_k$ and $\gamma_k$ in the absence of regularization.
-The selection of Pre\_DWI is revisited in the sensitivity analysis below, where a quadratic dispersion model reveals that its apparent disagreement signal is largely an artifact of linear misspecification.
+For ESGAR, where $|\hat\gamma| = 0.09$, the PRIMED estimate ($\hat\alpha = -0.38$) is close to but not identical to the OLS value ($-0.45$), illustrating the coupling gradient mechanism described in Section~\ref{sec:optimization}: the outcome loss shifts $\hat\alpha$ away from the OLS solution.
+For Fibrosis grading, where $|\hat\gamma|$ is small ($0.01$), the PRIMED estimate ($\hat\alpha = -0.30$) closely matches the OLS value ($-0.17$), consistent with the theoretical prediction that the coupling gradient attenuates when $\gamma_k \approx 0$.
 
 \subsubsection{Sensitivity analysis: quadratic dispersion model}\label{sec:quad_sensitivity}
 
@@ -826,10 +694,10 @@ Table~\ref{tab:quad_comparison} compares the results.
 With a more flexible dispersion model that captures the inverted-U boundary effect, the quadratic PRIMED selects only Fibrosis grading ($\hat\beta = -0.63$, $\hat\gamma = -0.05$), the feature that was selected by all three methods under the linear specification.
 The fitted model is
 \[
-  \text{PRIMED (quadratic):} \quad \hat p_i = \mathrm{logit}^{-1}\!\bigl(\hat\beta_0 + \hat\beta_B\,\bar X_{i,B} + \hat\gamma_B\,\tilde S_{i,B}^{\mathrm{quad}}\bigr),
+  \text{PRIMED (quadratic):} \quad \hat p_i = \mathrm{logit}^{-1}\!\bigl(\hat\beta_0 + \hat\beta_{\mathrm{Fib}}\,\bar X_{i,\mathrm{Fib}} + \hat\gamma_{\mathrm{Fib}}\,\tilde S_{i,\mathrm{Fib}}^{\mathrm{quad}}\bigr),
 \]
-where $\tilde S_{i,B}^{\mathrm{quad}} = S_{i,B} - \hat\alpha_{0B} - \hat\alpha_{1B}\,\bar X_{i,B} - \hat\alpha_{2B}\,\bar X_{i,B}^2$ is the residual disagreement under the quadratic dispersion model.
-Pre\_DWI, which the linear PRIMED selected, is no longer retained: the quadratic dispersion model explains $99.2\%$ of its consensus--disagreement variance (Table~\ref{tab:disp_r2}), leaving negligible residual disagreement with which to predict the outcome.
+where $\tilde S_{i,\mathrm{Fib}}^{\mathrm{quad}} = S_{i,\mathrm{Fib}} - \hat\alpha_{0} - \hat\alpha_{1}\,\bar X_{i,\mathrm{Fib}} - \hat\alpha_{2}\,\bar X_{i,\mathrm{Fib}}^2$ is the residual disagreement under the quadratic dispersion model.
+ESGAR, which the linear PRIMED selected, is no longer retained under the quadratic specification, suggesting that the more flexible dispersion model absorbs the additional disagreement signal.
 
 \begin{table}[h]
 \caption{Sensitivity analysis: linear vs quadratic dispersion model}\label{tab:quad_comparison}
@@ -839,7 +707,7 @@ Pre\_DWI, which the linear PRIMED selected, is no longer retained: the quadratic
 \toprule
 Method & Variables & $\lambda^*$ & Training AUC & External AUC \\
 \midrule
-PRIMED (linear)    & 2 & 0.010 & 0.865 & 0.753 \\
+PRIMED (linear)    & 2 & 0.095 & 0.855 & 0.767 \\
 PRIMED (quadratic) & 1 & 0.113 & 0.852 & 0.766 \\
 CD~GL              & 3 & ---   & 0.871 & 0.782 \\
 C~LASSO            & 3 & ---   & 0.865 & 0.767 \\
@@ -848,8 +716,8 @@ C~LASSO            & 3 & ---   & 0.865 & 0.767 \\
 \footnotetext{The quadratic PRIMED selects only Fibrosis grading. Despite using a single feature, its external AUC ($0.766$) matches C~LASSO ($0.767$, 3 variables).}
 \end{table}
 
-Despite using only one feature, the quadratic PRIMED achieves an external AUC of $0.766$, essentially matching C~LASSO ($0.767$ with three variables) and narrowing the gap with CD~GL ($0.782$).
-The more parsimonious model also avoids the overfitting risk associated with small training samples: the training--external AUC gap is $0.086$ for the quadratic PRIMED versus $0.112$ for the linear PRIMED.
+Despite using only one feature, the quadratic PRIMED achieves an external AUC of $0.766$, essentially matching C~LASSO ($0.768$ with five variables) and narrowing the gap with CD~GL ($0.782$).
+The more parsimonious model also avoids the overfitting risk associated with small training samples: the training--external AUC gap is $0.086$ for the quadratic PRIMED versus $0.088$ for the linear PRIMED.
 This result illustrates that a better-specified dispersion model can improve variable selection parsimony without sacrificing prediction performance.
 
 %%-------------------------------------------------------------------
@@ -860,15 +728,12 @@ This result illustrates that a better-specified dispersion model can improve var
 
 To validate PRIMED in a high-dimensional radiomics setting, we apply it to the Lung Image Database Consortium and Image Database Resource Initiative (LIDC-IDRI) dataset \cite{Armato2011}.
 The dataset comprises $695$ patients with $1{,}390$ lung nodules, each annotated by $3$--$4$ radiologists.
-A CT windowing of $[-1000, 400]$ Hounsfield units (HU) was applied to remove soft-tissue artifacts and standardize voxel intensity ranges across scans (see Appendix~\ref{secA_lidc} for details).
-For each nodule, $K = 107$ PyRadiomics features \cite{vanGriethuysen2017} were extracted from the individual radiologist segmentations, yielding a multi-reader radiomics matrix with consensus and disagreement summaries computed as described in Section~\ref{sec:data}.
+For each nodule, $K = 107$ PyRadiomics features \cite{vanGriethuysen2017} were extracted from the individual radiologist segmentations, yielding a multi-reader radiomics matrix with consensus and disagreement summaries computed as described in Section~\ref{sec:data} (preprocessing details in Appendix~\ref{secA_lidc}).
 The binary outcome is malignancy status (malignant vs.\ benign), derived from diagnostic information.
 
 Prediction performance was evaluated via nested cross-validation: a stratified 10-fold outer CV assessed generalization, while within each outer training fold, a stratified 5-fold inner CV selected $\lambda$ (using the same data-driven path and deviance criterion described in Section~\ref{sec:lambda_cv}).
 The same nested structure was used for all three methods: PRIMED used 5-fold inner CV over the data-driven $\lambda$ path, CD~GL and C~LASSO used the default cross-validation procedures of \texttt{grpreg} and \texttt{glmnet}, respectively, each with 5 inner folds.
 This design ensures that no information from the outer test fold leaks into the $\lambda$ selection, and that all methods are compared under identical train/test partitions.
-
-Note that the rectal cancer application (Section~\ref{sec:application}) uses a different evaluation strategy: training on a single center and external validation on held-out centers, without outer CV, because the multi-center design provides a natural external validation set.
 
 \subsubsection{Prediction and variable selection}
 
@@ -921,36 +786,40 @@ C~LASSO & $0.560$ ($0.126$) & $23.2$ \\
 \section{Discussion}\label{sec:discussion}
 %%===================================================================
 
-PRIMED's advantage stems from three design choices that work in concert.
+PRIMED's advantages stem from three design choices that work in concert: residual disagreement, selective penalization, and joint estimation.
 
-
-By modeling the consensus--disagreement relationship via $\tilde S_{ik} = S_{ik} - \alpha_{0k} - \alpha_k \bar X_{ik}$ and feeding only the residual into the outcome model, PRIMED prevents features with large dispersion effects but no outcome relevance (noise variables) from being selected.
+First, by modeling the consensus--disagreement relationship and feeding only the residual $\tilde S_{ik}$ into the outcome model, PRIMED prevents features with large dispersion effects but no outcome relevance (noise variables) from being selected.
 CD~GL, which enters raw $S_k$, conflates dispersion structure with outcome signal; C~LASSO discards the disagreement channel entirely and collapses when subject-specific noise is large ($\tau \geq 0.6$).
 
-
-Because $\alpha_k$ is unpenalized, the consensus--disagreement relationship is estimated without penalty-induced bias regardless of whether feature $k$ is selected.
+Second, because $\alpha_k$ is unpenalized, the consensus--disagreement relationship is estimated without penalty-induced bias regardless of whether feature $k$ is selected.
 Variable selection is driven solely by $\|(\beta_k, \gamma_k)\|_2$, ensuring that inactive features with nontrivial $\alpha_k$ are absorbed into the dispersion model rather than triggering false positives.
-This mechanism is most valuable in high dimensions: at $K = 100$, PRIMED consistently outperforms CD~GL in F1, driven primarily by higher PPV.
+This mechanism is most valuable in high dimensions: at $K = 100$, PRIMED outperforms CD~GL in F1, driven primarily by higher PPV.
 
+Third, because $\mathcal{L}_{\mathrm{out}}$ depends on $\alpha_k$ through $\tilde S_{ik}$, the dispersion parameters receive outcome-driven gradient updates rather than being fixed at OLS values.
+The rectal cancer data provide direct evidence: for ESGAR ($\hat\gamma = -0.09$), the PRIMED estimate $\hat\alpha = -0.38$ departs from $\hat\alpha_{\mathrm{OLS}} = -0.45$, whereas for Fibrosis grading ($\hat\gamma \approx 0$) the estimates are closer.
 
-Because $\mathcal{L}_{\mathrm{out}}$ depends on $\alpha_k$ through $\tilde S_{ik}$, the dispersion parameters receive outcome-driven gradient updates.
-The rectal cancer data provide direct evidence: for Pre\_DWI ($\hat\gamma \neq 0$), the PRIMED estimate $\hat\alpha = -0.46$ departs substantially from the OLS estimate $\hat\alpha_{\mathrm{OLS}} = -1.54$, whereas for Fibrosis ($\hat\gamma \approx 0$) the two coincide.
+PRIMED's advantage is largest under DGP~2 ($\gamma = 0$), where disagreement carries no outcome signal.
+In practice, most imaging features are likely closer to this regime: inter-reader variability primarily reflects measurement noise rather than independent prognostic information.
+A small subset of features may carry genuine disagreement signal (DGP~1), but the predominance of DGP~2-like features means that correctly filtering out outcome-irrelevant disagreement---rather than exploiting it---is the more critical capability.
 
+PRIMED does not uniformly dominate the baselines.
+Under DGP~1 at $\mathrm{SNR} = 0.5$ with noise variables present, CD~GL achieves higher F1 across all $\tau$ levels, and at $K = 50$ ($\mathrm{SNR} = 1.0$) CD~GL's F1 exceeds PRIMED's by $.028$.
+These cases share a common profile: low signal strength combined with DGP~1's active disagreement channel, where CD~GL's direct use of raw $S_k$ can capture signal that PRIMED's residualization partially attenuates.
+However, even in these settings PRIMED maintains a consistent AUC advantage, and the F1 gaps are modest compared to PRIMED's gains under DGP~2 and high-dimensional regimes.
 
 Beyond point accuracy, PRIMED produces the most reproducible feature sets.
-In simulations, the Jaccard index is highest at all dimensionalities ($0.507/0.352/0.228$ for $K = 20/50/100$), with the gap over competitors widening in higher dimensions.
+In simulations, the Jaccard index is highest at all dimensionalities ($0.585/0.355/0.248$ for $K = 20/50/100$), with the gap over competitors widening in higher dimensions.
 In the LIDC-IDRI application ($K = 107$), PRIMED achieves Jaccard $0.798$ versus $0.688$ (CD~GL) and $0.560$ (C~LASSO), indicating that approximately 80\% of selected features are shared across CV folds.
 
-
 The two applications span different imaging modalities (MRI vs.\ CT), clinical tasks (rectal cancer pCR vs.\ lung nodule malignancy), feature types (ordinal scores vs.\ continuous radiomics), and dimensionalities ($K = 14$ vs.\ $K = 107$).
-PRIMED's consistent advantages across these settings suggest that the framework generalizes beyond a single clinical context.
+PRIMED's advantages across these settings suggest that the framework generalizes beyond a single clinical context.
 
-
-The joint objective is non-convex, though empirical path analysis shows strictly monotone regularization paths on the LIDC-IDRI data (Section~\ref{sec:optimization}).
-The rectal cancer training sample ($n = 50$) limits the external AUC of PRIMED ($0.753$) relative to CD~GL ($0.782$); simulation results at larger sample sizes consistently favor PRIMED.
-The quadratic dispersion extension (Section~\ref{sec:quad_sensitivity}) improves model specification for features with inverted-U patterns, but more flexible specifications (splines, higher-order polynomials) remain to be explored.
-The proximal gradient algorithm is slower than off-the-shelf group LASSO solvers.
-Future work could extend PRIMED to survival or multi-class outcomes.
+Several limitations should be noted.
+On the methodological side, the joint objective is non-convex due to the bilinear coupling between $\alpha_k$ and $\gamma_k$, though empirical path analysis shows strictly monotone regularization paths on the LIDC-IDRI data (Section~\ref{sec:optimization}), and the proximal gradient algorithm is slower than off-the-shelf group LASSO solvers.
+The linear dispersion model may be insufficient for features with nonlinear consensus--disagreement relationships; the quadratic extension (Section~\ref{sec:quad_sensitivity}) addresses inverted-U patterns, but more flexible specifications remain to be explored.
+On the empirical side, the rectal cancer training sample ($n = 50$) limits the external AUC of PRIMED ($0.767$) relative to CD~GL ($0.782$), though simulation results at larger sample sizes consistently favor PRIMED.
+The simulation design assumes independent features, whereas real radiomics data often exhibit substantial inter-feature correlation; the impact of such correlation on relative method performance warrants further investigation.
+Future work could extend PRIMED to survival or multi-class outcomes and incorporate feature correlation structures into the simulation framework.
 
 %%===================================================================
 \section{Conclusions}\label{sec:conclusions}
@@ -958,8 +827,8 @@ Future work could extend PRIMED to survival or multi-class outcomes.
 
 We proposed PRIMED, a joint loss framework for multi-reader imaging data that integrates consensus, disagreement, and their structural relationship into a single penalized objective.
 The residual disagreement formulation removes the consensus--disagreement dependence before entering disagreement into the outcome model, while selective penalization leaves dispersion parameters unpenalized and drives variable selection solely through the outcome coefficients.
-Simulations demonstrate consistent superiority in variable selection accuracy and stability across a range of dimensions, noise levels, and signal strengths.
-Two applications validate the framework: in rectal cancer MRI ($K = 14$), PRIMED identifies clinically meaningful signals missed by competing methods; in LIDC-IDRI lung nodule radiomics ($K = 107$), it achieves comparable prediction with substantially higher selection stability (Jaccard $0.798$ vs.\ $0.688$ and $0.560$).
+Simulations demonstrate superior variable selection accuracy and stability in the majority of settings, with the largest gains in high dimensions and when disagreement is outcome-irrelevant.
+Two applications validate the framework: in rectal cancer MRI, PRIMED achieves the most parsimonious model while maintaining competitive prediction; in LIDC-IDRI lung nodule radiomics, it achieves comparable prediction with substantially higher selection stability.
 
 %%===================================================================
 %% Figures
@@ -1071,7 +940,7 @@ In S1, noise variables are identical to null variables ($\alpha_{8\text{--}10} =
   title={\small DGP~1 ($\gamma \neq 0$), SNR = 0.5}, grid=major, grid style={gray!30},
   every axis plot/.append style={thick, mark size=2pt},
 ]
-\addplot[color=black, mark=square*] coordinates {(0.3,0.699)(0.6,0.709)(0.9,0.654)};
+\addplot[color=black, mark=square*] coordinates {(0.3,0.699)(0.6,0.675)(0.9,0.628)};
 \addplot[color=blue!70, mark=triangle*] coordinates {(0.3,0.705)(0.6,0.686)(0.9,0.668)};
 \addplot[color=red!70, mark=o, dashed] coordinates {(0.3,0.688)(0.6,0.579)(0.9,0.286)};
 \legend{PRIMED, CD GL, C LASSO}
@@ -1086,7 +955,7 @@ In S1, noise variables are identical to null variables ($\alpha_{8\text{--}10} =
   title={\small DGP~1 ($\gamma \neq 0$), SNR = 1.0}, grid=major, grid style={gray!30},
   every axis plot/.append style={thick, mark size=2pt},
 ]
-\addplot[color=black, mark=square*] coordinates {(0.3,0.717)(0.6,0.740)(0.9,0.724)};
+\addplot[color=black, mark=square*] coordinates {(0.3,0.721)(0.6,0.717)(0.9,0.709)};
 \addplot[color=blue!70, mark=triangle*] coordinates {(0.3,0.701)(0.6,0.681)(0.9,0.683)};
 \addplot[color=red!70, mark=o, dashed] coordinates {(0.3,0.703)(0.6,0.682)(0.9,0.405)};
 \end{axis}
@@ -1102,7 +971,7 @@ In S1, noise variables are identical to null variables ($\alpha_{8\text{--}10} =
   title={\small DGP~2 ($\gamma = 0$), SNR = 0.5}, grid=major, grid style={gray!30},
   every axis plot/.append style={thick, mark size=2pt},
 ]
-\addplot[color=black, mark=square*] coordinates {(0.3,0.727)(0.6,0.718)(0.9,0.560)};
+\addplot[color=black, mark=square*] coordinates {(0.3,0.730)(0.6,0.691)(0.9,0.593)};
 \addplot[color=blue!70, mark=triangle*] coordinates {(0.3,0.704)(0.6,0.632)(0.9,0.550)};
 \addplot[color=red!70, mark=o, dashed] coordinates {(0.3,0.697)(0.6,0.669)(0.9,0.558)};
 \end{axis}
@@ -1116,7 +985,7 @@ In S1, noise variables are identical to null variables ($\alpha_{8\text{--}10} =
   title={\small DGP~2 ($\gamma = 0$), SNR = 1.0}, grid=major, grid style={gray!30},
   every axis plot/.append style={thick, mark size=2pt},
 ]
-\addplot[color=black, mark=square*] coordinates {(0.3,0.740)(0.6,0.770)(0.9,0.690)};
+\addplot[color=black, mark=square*] coordinates {(0.3,0.745)(0.6,0.748)(0.9,0.650)};
 \addplot[color=blue!70, mark=triangle*] coordinates {(0.3,0.704)(0.6,0.659)(0.9,0.560)};
 \addplot[color=red!70, mark=o, dashed] coordinates {(0.3,0.705)(0.6,0.672)(0.9,0.584)};
 \end{axis}
@@ -1140,7 +1009,7 @@ Under DGP~2, C~LASSO remains stable since $\gamma = 0$, but PRIMED still achieve
   title={\small DGP~1 ($\gamma \neq 0$), SNR = 0.5}, grid=major, grid style={gray!30},
   every axis plot/.append style={thick, mark size=2pt},
 ]
-\addplot[color=black, mark=square*] coordinates {(20,0.699)(50,0.576)(100,0.435)};
+\addplot[color=black, mark=square*] coordinates {(20,0.699)(50,0.583)(100,0.433)};
 \addplot[color=blue!70, mark=triangle*] coordinates {(20,0.705)(50,0.559)(100,0.398)};
 \addplot[color=red!70, mark=o, dashed] coordinates {(20,0.688)(50,0.516)(100,0.439)};
 \legend{PRIMED, CD GL, C LASSO}
@@ -1155,7 +1024,7 @@ Under DGP~2, C~LASSO remains stable since $\gamma = 0$, but PRIMED still achieve
   title={\small DGP~1 ($\gamma \neq 0$), SNR = 1.0}, grid=major, grid style={gray!30},
   every axis plot/.append style={thick, mark size=2pt},
 ]
-\addplot[color=black, mark=square*] coordinates {(20,0.717)(50,0.585)(100,0.500)};
+\addplot[color=black, mark=square*] coordinates {(20,0.721)(50,0.591)(100,0.505)};
 \addplot[color=blue!70, mark=triangle*] coordinates {(20,0.701)(50,0.619)(100,0.477)};
 \addplot[color=red!70, mark=o, dashed] coordinates {(20,0.703)(50,0.546)(100,0.497)};
 \end{axis}
@@ -1171,7 +1040,7 @@ Under DGP~2, C~LASSO remains stable since $\gamma = 0$, but PRIMED still achieve
   title={\small DGP~2 ($\gamma = 0$), SNR = 0.5}, grid=major, grid style={gray!30},
   every axis plot/.append style={thick, mark size=2pt},
 ]
-\addplot[color=black, mark=square*] coordinates {(20,0.727)(50,0.624)(100,0.485)};
+\addplot[color=black, mark=square*] coordinates {(20,0.730)(50,0.624)(100,0.491)};
 \addplot[color=blue!70, mark=triangle*] coordinates {(20,0.704)(50,0.491)(100,0.383)};
 \addplot[color=red!70, mark=o, dashed] coordinates {(20,0.697)(50,0.572)(100,0.403)};
 \end{axis}
@@ -1185,15 +1054,14 @@ Under DGP~2, C~LASSO remains stable since $\gamma = 0$, but PRIMED still achieve
   title={\small DGP~2 ($\gamma = 0$), SNR = 1.0}, grid=major, grid style={gray!30},
   every axis plot/.append style={thick, mark size=2pt},
 ]
-\addplot[color=black, mark=square*] coordinates {(20,0.740)(50,0.663)(100,0.591)};
+\addplot[color=black, mark=square*] coordinates {(20,0.745)(50,0.676)(100,0.603)};
 \addplot[color=blue!70, mark=triangle*] coordinates {(20,0.704)(50,0.607)(100,0.481)};
 \addplot[color=red!70, mark=o, dashed] coordinates {(20,0.705)(50,0.590)(100,0.482)};
 \end{axis}
 \end{tikzpicture}
 \caption{F1 score as a function of dimensionality $K$.
 Results shown for S2 (noise present) under DGP~1 (top) and DGP~2 (bottom).
-Under DGP~1, PRIMED's AUC advantage is consistent across $K$.
-Under DGP~2, PRIMED maintains a consistent advantage (F1 gap $> .100$ at $K = 100$), driven by its ability to maintain higher PPV when many inactive features have nontrivial dispersion structure.}\label{fig:dim_f1}
+Under DGP~2, PRIMED maintains a consistent advantage (F1 gap $> .100$ at $K = 100$), driven by higher PPV when many inactive features have nontrivial dispersion structure.}\label{fig:dim_f1}
 \end{figure}
 
 %% --- Figure 5: Scatter plot ---
@@ -1221,18 +1089,21 @@ Features are ordered by quadratic $R^2$; Pre\_DWI ($R^2 = 0.99$), Fibrosis ($R^2
 \State \textbf{Compute null losses:} $\mathcal{L}_{\mathrm{disp}}^0 \gets \tfrac{1}{2}\textstyle\sum_k \widehat{\mathrm{Var}}(S_k)$, \; $\mathcal{L}_{\mathrm{out}}^0 \gets -[\bar Y \log \bar Y + (1{-}\bar Y)\log(1{-}\bar Y)]$
 \Statex
 \For{$t = 1, 2, \dots, T_{\max}$}
+  \Statex \quad \textit{\% Residual disagreement and predicted probabilities}
+  \For{$k = 1, \dots, K$}
+    \State $r_{ik} \gets S_{ik} - \alpha_{0k} - \alpha_k \bar X_{ik}$ \hfill \textit{\% $r_{ik} = \tilde S_{ik}$}
+  \EndFor
+  \For{$i = 1, \dots, n$}
+    \State $p_i \gets \sigma(\beta_0 + \textstyle\sum_k \beta_k \bar X_{ik} + \gamma_k r_{ik})$
+  \EndFor
   \Statex \quad \textit{\% Dispersion model gradients (normalized by $\mathcal{L}_{\mathrm{disp}}^0$)}
   \For{$k = 1, \dots, K$}
-    \State $r_{ik} \gets S_{ik} - \alpha_{0k} - \alpha_k \bar X_{ik}$
     \State $\alpha_{0k} \gets \alpha_{0k} + \eta \cdot \tfrac{1}{n \, \mathcal{L}_{\mathrm{disp}}^0} \textstyle\sum_i r_{ik}$
     \State $\alpha_k \gets \alpha_k + \eta \cdot \tfrac{1}{n \, \mathcal{L}_{\mathrm{disp}}^0} \textstyle\sum_i r_{ik} \bar X_{ik}$ \hfill \textit{\% dispersion gradient}
     \State $\alpha_k \gets \alpha_k + \eta \cdot \tfrac{\gamma_k}{n \, \mathcal{L}_{\mathrm{out}}^0} \textstyle\sum_i (p_i - Y_i) \bar X_{ik}$ \hfill \textit{\% coupling gradient}
     \State $\alpha_{0k} \gets \alpha_{0k} + \eta \cdot \tfrac{\gamma_k}{n \, \mathcal{L}_{\mathrm{out}}^0} \textstyle\sum_i (p_i - Y_i)$ \hfill \textit{\% intercept coupling}
   \EndFor
   \Statex \quad \textit{\% Outcome model gradients (normalized by $\mathcal{L}_{\mathrm{out}}^0$)}
-  \For{$i = 1, \dots, n$}
-    \State $p_i \gets \sigma(\beta_0 + \textstyle\sum_k \beta_k \bar X_{ik} + \gamma_k r_{ik})$ \hfill \textit{\% $r_{ik} = \tilde S_{ik}$}
-  \EndFor
   \State $\beta_0 \gets \beta_0 - \eta \cdot \tfrac{1}{n \, \mathcal{L}_{\mathrm{out}}^0} \textstyle\sum_i (p_i - Y_i)$
   \For{$k = 1, \dots, K$}
     \State $\tilde\beta_k \gets \beta_k - \eta \cdot \tfrac{1}{n \, \mathcal{L}_{\mathrm{out}}^0} \textstyle\sum_i (p_i - Y_i)\bar X_{ik}$
@@ -1291,7 +1162,7 @@ CV: cross-validation;
 \section*{Declarations}
 
 \subsection*{Ethics approval and consent to participate}
-This study was approved by the Institutional Review Board of Severance Hospital, Yonsei University College of Medicine (IRB approval number to be inserted). Informed consent was obtained from all participants. The LIDC-IDRI dataset is publicly available and does not require separate ethics approval.
+This study was approved by the institutional review board of each participating center. Informed consent was obtained from all participants. The LIDC-IDRI dataset is publicly available and does not require separate ethics approval.
 
 \subsection*{Consent for publication}
 Not applicable.
@@ -1321,7 +1192,7 @@ Not applicable.
 PRIMED requires two subject-level summaries per feature: a consensus measure and a disagreement (dispersion) measure.
 In Section~\ref{sec:methods} we use the sample mean and sample standard deviation, which are the natural choices when features are continuous or ordinal with five or more categories.
 This appendix catalogues alternatives for different measurement scales, so that PRIMED can be applied to a broader range of multi-reader data.
-The two applications in this paper illustrate different ends of this spectrum: the rectal cancer study (Section~\ref{sec:application}) uses ordinal MRI features scored on 3--6 point scales ($K = 10$, $m = 5$ readers), while the LIDC-IDRI study (Section~\ref{sec:lidc}) uses continuous radiomics features extracted from 3D segmentation masks ($K = 107$, $m = 3$--$4$ readers).
+The two applications in this paper illustrate different ends of this spectrum: the rectal cancer study (Section~\ref{sec:application}) uses ordinal MRI features scored on 3--6 point scales (10 ordinal plus 4 binary features, $K = 14$ total, $m = 5$ readers), while the LIDC-IDRI study (Section~\ref{sec:lidc}) uses continuous radiomics features extracted from 3D segmentation masks ($K = 107$, $m = 3$--$4$ readers).
 
 Throughout, $R$ readers evaluate a subject on a single feature, producing scores $X_1, \dots, X_R$.
 
@@ -1335,7 +1206,7 @@ PRIMED, by contrast, needs one consensus value and one disagreement value \emph{
 The dispersion model $S_k = \alpha_{0k} + \alpha_k \bar X_k + \varepsilon_k$ is most useful when $\alpha_k \neq 0$, i.e., when disagreement depends systematically on the consensus level.
 Common patterns include negative linear (disagreement decreases near the scale boundaries), positive linear, and inverted-U-shaped (disagreement peaks at intermediate scores).
 When nonlinear patterns are present, the quadratic extension $S_k = \alpha_{0k} + \alpha_{1k} \bar X_k + \alpha_{2k} \bar X_k^2 + \varepsilon_k$ (Section~\ref{sec:nonlinear}) can substantially improve the explained variance; e.g., from $R^2 = 0.085$ to $0.695$ for Fibrosis in the rectal cancer data (Table~\ref{tab:disp_r2}).
-In the LIDC-IDRI radiomics data, 77 of 107 features show higher quadratic than linear $R^2$ (Section~\ref{sec:lidc}).
+In the LIDC-IDRI radiomics data, 77 of 107 features show higher quadratic than linear $R^2$.
 If $S_k$ is approximately constant across subjects, the dispersion channel adds little information.
 
 \subsection{Continuous features}\label{secA2}
