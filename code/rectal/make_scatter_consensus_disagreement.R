@@ -8,7 +8,7 @@ suppressPackageStartupMessages({
 })
 
 # ── Data Loading ──────────────────────────────────────────────
-data_path <- "/Users/kwon-yonghan/Documents/graduate school/project/han/RectalCR_GroupPenalty/data/data.xlsx"
+data_path <- "../../data/data.xlsx"
 data <- read_excel(data_path)
 
 data_clean <- data %>%
@@ -89,6 +89,6 @@ p <- ggplot(plot_data, aes(x = Consensus, y = Disagreement)) +
   )
 
 # ── Save ──────────────────────────────────────────────────────
-out_path <- "/Users/kwon-yonghan/Documents/graduate school/project/han/RectalCR_GroupPenalty/manuscript/fig_scatter_cd.pdf"
+out_path <- "../../figures/fig_scatter_cd.pdf"
 ggsave(out_path, p, width = 10, height = 4.5, dpi = 300)
 cat("Saved:", out_path, "\n")

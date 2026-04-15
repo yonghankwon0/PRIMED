@@ -13,7 +13,7 @@ library(glmnet)
 # 1. 데이터 로딩 및 전처리 (기존과 동일)
 # =============================================================================
 
-data <- read_excel("/Users/kwon-yonghan/Documents/graduate school/project/han/RectalCR_GroupPenalty/data/data.xlsx")
+data <- read_excel("../../data/data.xlsx")
 
 data_clean <- data %>%
   slice(-(1:2)) %>%

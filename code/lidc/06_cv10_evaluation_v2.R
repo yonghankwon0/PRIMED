@@ -20,7 +20,7 @@ library(parallel)
 
 N_CORES <- 20
 
-csv_path <- "/home/yonghankwon0/PRIMED/PRIMED_submission/results/lidc/radiomics_cd.csv"
+csv_path <- "../../results/lidc/radiomics_cd.csv"
 cd_data <- read_csv(csv_path, show_col_types = FALSE)
 
 cd_data <- cd_data %>%
@@ -282,10 +282,10 @@ cat("\n\nFeatures selected in >= 5/10 folds:\n")
 sel_any5 <- sel_summary %>% filter(primed>=5|cdgl>=5|classo>=5) %>% arrange(desc(primed),desc(cdgl))
 print(as.data.frame(sel_any5), row.names=FALSE)
 
-write.csv(res_df, "/home/yonghankwon0/PRIMED/PRIMED_submission/results/lidc/cv10v2_auc_results.csv", row.names=FALSE)
-write.csv(sel_summary, "/home/yonghankwon0/PRIMED/PRIMED_submission/results/lidc/cv10v2_selection_frequency.csv", row.names=FALSE)
+write.csv(res_df, "../../results/lidc/cv10v2_auc_results.csv", row.names=FALSE)
+write.csv(sel_summary, "../../results/lidc/cv10v2_selection_frequency.csv", row.names=FALSE)
 saveRDS(list(results=res_df, selected_vars=selected_vars, sel_summary=sel_summary),
-        "/home/yonghankwon0/PRIMED/PRIMED_submission/results/lidc/cv10v2_full_results.rds")
+        "../../results/lidc/cv10v2_full_results.rds")
 cat(sprintf("\nSaved: cv10v2_*.csv/rds\n"))
 
 # Jaccard stability

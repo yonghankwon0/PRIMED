@@ -1,0 +1,39 @@
+# Simulation intermediate files
+code/simulation/sim_data_*.csv
+code/simulation/sim_modprimed_*.csv
+code/simulation/result_full_job*.csv
+code/simulation/selfreq_full_job*.csv
+code/simulation/logs/
+
+# Old results backup
+results/simulation_old_nocoupling/
+
+# Compiled LaTeX
+paper/*.aux
+paper/*.log
+paper/*.out
+paper/*.synctex.gz
+paper/*.fls
+paper/*.fdb_latexmk
+paper/*.blg
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# R
+.Rhistory
+.RData
+.Rproj.user
+
+# BMC guidelines (not part of submission)
+BMC_guideline.zip
+*.pdf
+!paper/*.pdf
+!figures/*.pdf
+!paper/fig_*.pdf
+
+# Submission guidelines PDFs
+Research article*.pdf
+Submission guidelines*.pdf
+user-manual.pdf

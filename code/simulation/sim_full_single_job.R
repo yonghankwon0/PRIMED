@@ -108,10 +108,12 @@ run_sim <- function(tag, K, alpha_true, beta_true, gamma_true,
     mp_sel<-as.numeric(mpdf[b,paste0("sel_",1:K)])
     mp_tpr_b<-mean(mp_sel[active]); mp_fpr_b<-mean(mp_sel[inact])
     mp_ppv_b<-(mp_tpr_b*na_act)/max(mp_tpr_b*na_act+mp_fpr_b*ni,1e-10)
+    amp<-as.numeric(mpdf[b,paste0("alpha_",1:K)]); a0mp<-as.numeric(mpdf[b,paste0("alpha0_",1:K)])
     bmp<-as.numeric(mpdf[b,paste0("beta_",1:K)]); gmp<-as.numeric(mpdf[b,paste0("gamma_",1:K)])
+    St_tilde<-St-rep(1,nt)%o%a0mp-Xt*rep(1,nt)%o%amp
     rep_metrics$mp_tpr[b]<-mp_tpr_b; rep_metrics$mp_ppv[b]<-mp_ppv_b
     rep_metrics$mp_f1[b]<-f1_fn(mp_tpr_b,mp_ppv_b)
-    rep_metrics$mp_auc[b]<-compute_auc(Yt,1/(1+exp(-(mpdf$beta0[b]+Xt%*%bmp+St%*%gmp))))
+    rep_metrics$mp_auc[b]<-compute_auc(Yt,1/(1+exp(-(mpdf$beta0[b]+Xt%*%bmp+St_tilde%*%gmp))))
 
     # CD GL
     cd<-cd_res_list[[b]]

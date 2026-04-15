@@ -76,6 +76,12 @@ function modified_primed(X_bar::Matrix{Float64}, S::Matrix{Float64}, Y::Vector{F
         grad_beta  ./= (n * L_out_null)
         grad_gamma ./= (n * L_out_null)
 
+        # --- Coupling gradient: ∂(L_out/L_out^0)/∂(α_k, α_{0k}) ---
+        for k in 1:K
+            grad_alpha[k] -= gamma[k] * grad_beta[k]
+            alpha0[k] += eta * gamma[k] * s_resid / (n * L_out_null)
+        end
+
         # --- Proximal step ---
         # α: FREE (gradient step only, no shrinkage)
         for k in 1:K
@@ -222,7 +228,7 @@ function main()
     @printf("B=%d, K=%d, data-driven lambda grid\n", B, K)
     @printf("L_joint = L_med/L_med_null + L_out/L_out_null  [α free, penalty on (β,γ)]\n\n")
 
-    n_out_cols = 3 + K + 3*K
+    n_out_cols = 3 + K + 4*K
     results = zeros(B, n_out_cols)
 
     t0 = time()
@@ -246,8 +252,9 @@ function main()
             sel = (res.fit.beta[k] != 0 || res.fit.gamma[k] != 0) ? 1.0 : 0.0
             results[idx, 3+k]      = sel
             results[idx, 3+K+k]    = res.fit.alpha[k]
-            results[idx, 3+2K+k]   = res.fit.beta[k]
-            results[idx, 3+3K+k]   = res.fit.gamma[k]
+            results[idx, 3+2K+k]   = res.fit.alpha0[k]
+            results[idx, 3+3K+k]   = res.fit.beta[k]
+            results[idx, 3+4K+k]   = res.fit.gamma[k]
         end
 
         if idx % max(1, B÷5) == 0
@@ -259,7 +266,7 @@ function main()
     elapsed = time() - t0
     @printf("\nDone in %.1f sec (%.2f sec/rep)\n", elapsed, elapsed/B)
 
-    header = ["rep" "lambda" "beta0" [string("sel_", k) for k in 1:K]... [string("alpha_", k) for k in 1:K]... [string("beta_", k) for k in 1:K]... [string("gamma_", k) for k in 1:K]...]
+    header = ["rep" "lambda" "beta0" [string("sel_", k) for k in 1:K]... [string("alpha_", k) for k in 1:K]... [string("alpha0_", k) for k in 1:K]... [string("beta_", k) for k in 1:K]... [string("gamma_", k) for k in 1:K]...]
 
     open(result_csv, "w") do io
         println(io, join(header, ","))

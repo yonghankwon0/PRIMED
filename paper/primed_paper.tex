@@ -184,7 +184,7 @@ The penalized objective is
 \end{equation}
 The penalty is a group LASSO norm applied to the outcome coefficients $(\beta_k, \gamma_k)$ for each feature $k$.
 The group structure ensures that each feature is evaluated holistically (considering both its consensus signal ($\beta_k$) and its residual disagreement signal ($\gamma_k$)), rather than allowing one channel to be selected in isolation, which could lead to the inclusion of features with a spurious consensus or disagreement effect.
-Since each group consistently contains two coefficients, group-specific weights (such as $\sqrt{p_g}$ scaling) are unnecessary and are omitted.
+Since each group consistently contains two coefficients, the standard $\sqrt{p_g}$ weight reduces to $\sqrt{2}$ for all groups. This constant factor is absorbed into the proximal threshold (see Section~\ref{sec:optimization}), so no group-specific weighting is needed.
 
 The intercepts $\alpha_{0k}$ and $\beta_0$ are unpenalized, as is standard.
 Crucially, the dispersion slopes $\alpha_k$ are also unpenalized: they are updated by gradient descent without penalty-induced shrinkage.
@@ -205,8 +205,8 @@ At each iteration, all parameters receive a gradient step.
 The dispersion parameters $(\alpha_{0k}, \alpha_k)$ receive gradients from \emph{two} sources: the dispersion loss $\mathcal{L}_{\mathrm{disp}}$ and, because $\tilde S_{ik} = S_{ik} - \alpha_{0k} - \alpha_k \bar X_{ik}$ enters the outcome model, the outcome loss $\mathcal{L}_{\mathrm{out}}$.
 The coupling gradient for $\alpha_k$ from the outcome loss is
 \[
-  \frac{\partial \mathcal{L}_{\mathrm{out}}}{\partial \alpha_k}
-  = \frac{\gamma_k}{n\,\mathcal{L}_{\mathrm{out}}^0} \sum_{i=1}^n (p_i - Y_i)\,\bar X_{ik},
+  \frac{\partial (\mathcal{L}_{\mathrm{out}}/\mathcal{L}_{\mathrm{out}}^0)}{\partial \alpha_k}
+  = -\frac{\gamma_k}{n\,\mathcal{L}_{\mathrm{out}}^0} \sum_{i=1}^n (p_i - Y_i)\,\bar X_{ik},
 \]
 which arises because $\partial \tilde S_{ik}/\partial \alpha_k = -\bar X_{ik}$.
 This gradient vanishes when $\gamma_k = 0$ (i.e., when feature $k$ is not selected), so only outcome-relevant features couple the two losses.
@@ -214,7 +214,7 @@ More precisely, at any stationary point the gradient of $\mathcal{L}$ with respe
 \begin{equation}\label{eq:stationary_alpha}
   \underbrace{\frac{1}{n\,\mathcal{L}_{\mathrm{disp}}^0}\sum_{i=1}^n \tilde S_{ik}\,\bar X_{ik}}_{\text{dispersion gradient}}
   \;=\;
-  \underbrace{\frac{\gamma_k}{n\,\mathcal{L}_{\mathrm{out}}^0}\sum_{i=1}^n (p_i - Y_i)\,\bar X_{ik}}_{\text{coupling gradient}}.
+  \underbrace{-\frac{\gamma_k}{n\,\mathcal{L}_{\mathrm{out}}^0}\sum_{i=1}^n (p_i - Y_i)\,\bar X_{ik}}_{\text{coupling gradient}}.
 \end{equation}
 Because the joint objective is non-convex (see below), \eqref{eq:stationary_alpha} characterizes any stationary point reached by the algorithm, not a unique global solution.
 At such a point, when $\gamma_k = 0$ the right-hand side vanishes, so $\sum_i \tilde S_{ik}\,\bar X_{ik} = 0$: the residual $\tilde S_k$ is sample-orthogonal to $\bar X_k$, and $\hat\alpha_k$ coincides with the ordinary least squares estimate.
@@ -224,9 +224,9 @@ The outcome coefficients $(\beta_k, \gamma_k)$ then receive a group-wise proxima
 \[
   (\beta_k, \gamma_k) \leftarrow
   \begin{cases}
-    \displaystyle \Bigl(1 - \frac{\eta\lambda}{\|(\tilde\beta_k, \tilde\gamma_k)\|_2}\Bigr)
+    \displaystyle \Bigl(1 - \frac{\eta\lambda\sqrt{2}}{\|(\tilde\beta_k, \tilde\gamma_k)\|_2}\Bigr)
     (\tilde\beta_k, \tilde\gamma_k),
-    & \text{if } \|(\tilde\beta_k, \tilde\gamma_k)\|_2 > \eta\lambda, \\[6pt]
+    & \text{if } \|(\tilde\beta_k, \tilde\gamma_k)\|_2 > \eta\lambda\sqrt{2}, \\[6pt]
     (0,0), & \text{otherwise},
   \end{cases}
 \]
@@ -326,10 +326,10 @@ In particular, a quadratic dispersion model
 captures the inverted-U pattern with a single additional parameter per feature.
 The residual disagreement becomes $\tilde S_{ik} = S_{ik} - \alpha_{0k} - \alpha_{1k} \bar X_{ik} - \alpha_{2k} \bar X_{ik}^2$, and the coupling gradients from the outcome loss generalize naturally:
 \[
-  \frac{\partial \mathcal{L}_{\mathrm{out}}}{\partial \alpha_{1k}}
-  = \frac{\gamma_k}{n\,\mathcal{L}_{\mathrm{out}}^0} \sum_{i=1}^n (p_i - Y_i)\,\bar X_{ik}, \qquad
-  \frac{\partial \mathcal{L}_{\mathrm{out}}}{\partial \alpha_{2k}}
-  = \frac{\gamma_k}{n\,\mathcal{L}_{\mathrm{out}}^0} \sum_{i=1}^n (p_i - Y_i)\,\bar X_{ik}^2.
+  \frac{\partial (\mathcal{L}_{\mathrm{out}}/\mathcal{L}_{\mathrm{out}}^0)}{\partial \alpha_{1k}}
+  = -\frac{\gamma_k}{n\,\mathcal{L}_{\mathrm{out}}^0} \sum_{i=1}^n (p_i - Y_i)\,\bar X_{ik}, \qquad
+  \frac{\partial (\mathcal{L}_{\mathrm{out}}/\mathcal{L}_{\mathrm{out}}^0)}{\partial \alpha_{2k}}
+  = -\frac{\gamma_k}{n\,\mathcal{L}_{\mathrm{out}}^0} \sum_{i=1}^n (p_i - Y_i)\,\bar X_{ik}^2.
 \]
 All other components of the framework (the outcome model, the group penalty on $(\beta_k, \gamma_k)$, and the proximal gradient algorithm) remain unchanged.
 Both $\alpha_{1k}$ and $\alpha_{2k}$ are unpenalized, consistent with the selective penalization principle.
@@ -1226,7 +1226,8 @@ Features are ordered by quadratic $R^2$; Pre\_DWI ($R^2 = 0.99$), Fibrosis ($R^2
     \State $r_{ik} \gets S_{ik} - \alpha_{0k} - \alpha_k \bar X_{ik}$
     \State $\alpha_{0k} \gets \alpha_{0k} + \eta \cdot \tfrac{1}{n \, \mathcal{L}_{\mathrm{disp}}^0} \textstyle\sum_i r_{ik}$
     \State $\alpha_k \gets \alpha_k + \eta \cdot \tfrac{1}{n \, \mathcal{L}_{\mathrm{disp}}^0} \textstyle\sum_i r_{ik} \bar X_{ik}$ \hfill \textit{\% dispersion gradient}
-    \State $\alpha_k \gets \alpha_k - \eta \cdot \tfrac{\gamma_k}{n \, \mathcal{L}_{\mathrm{out}}^0} \textstyle\sum_i (p_i - Y_i) \bar X_{ik}$ \hfill \textit{\% coupling gradient}
+    \State $\alpha_k \gets \alpha_k + \eta \cdot \tfrac{\gamma_k}{n \, \mathcal{L}_{\mathrm{out}}^0} \textstyle\sum_i (p_i - Y_i) \bar X_{ik}$ \hfill \textit{\% coupling gradient}
+    \State $\alpha_{0k} \gets \alpha_{0k} + \eta \cdot \tfrac{\gamma_k}{n \, \mathcal{L}_{\mathrm{out}}^0} \textstyle\sum_i (p_i - Y_i)$ \hfill \textit{\% intercept coupling}
   \EndFor
   \Statex \quad \textit{\% Outcome model gradients (normalized by $\mathcal{L}_{\mathrm{out}}^0$)}
   \For{$i = 1, \dots, n$}
@@ -1239,8 +1240,8 @@ Features are ordered by quadratic $R^2$; Pre\_DWI ($R^2 = 0.99$), Fibrosis ($R^2
   \EndFor
   \Statex \quad \textit{\% Proximal step: group soft-thresholding on $(\beta_k, \gamma_k)$}
   \For{$k = 1, \dots, K$}
-    \If{$\|(\tilde\beta_k, \tilde\gamma_k)\|_2 > \eta\lambda$}
-      \State $(\beta_k, \gamma_k) \gets \bigl(1 - \tfrac{\eta\lambda}{\|(\tilde\beta_k, \tilde\gamma_k)\|_2}\bigr)(\tilde\beta_k, \tilde\gamma_k)$
+    \If{$\|(\tilde\beta_k, \tilde\gamma_k)\|_2 > \eta\lambda\sqrt{2}$}
+      \State $(\beta_k, \gamma_k) \gets \bigl(1 - \tfrac{\eta\lambda\sqrt{2}}{\|(\tilde\beta_k, \tilde\gamma_k)\|_2}\bigr)(\tilde\beta_k, \tilde\gamma_k)$
     \Else
       \State $(\beta_k, \gamma_k) \gets (0, 0)$
     \EndIf

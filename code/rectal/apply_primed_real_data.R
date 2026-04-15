@@ -13,7 +13,7 @@ library(glmnet)
 # 1. 데이터 로딩 및 전처리 (main.R과 동일)
 # =============================================================================
 
-data <- read_excel("/Users/kwon-yonghan/Documents/graduate school/project/han/RectalCR_GroupPenalty/data/data.xlsx")
+data <- read_excel("../../data/data.xlsx")
 
 data_clean <- data %>%
   slice(-(1:2)) %>%
@@ -378,6 +378,6 @@ saveRDS(list(
   combined   = combined,
   primed_result = primed_result,
   binary_result = if (!is.null(fit$delta)) binary_result else NULL
-), file = "/Users/kwon-yonghan/Documents/graduate school/project/han/RectalCR_GroupPenalty/data/primed_real_data_results.rds")
+), file = "../../results/rectal/primed_real_data_results.rds")
 
 cat("\n결과 저장 완료\n")
