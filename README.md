@@ -12,29 +12,23 @@ PRIMED/
 │   ├── primed_paper.tex            Main manuscript
 │   └── primed_paper.pdf            Compiled PDF
 ├── code/
-│   ├── simulation/                 Simulation studies
+│   ├── simulation/                 Simulation studies (Tables 1-9)
 │   │   ├── 01_primed_core.jl        PRIMED optimizer (K <= 50)
 │   │   ├── 01_primed_core_highdim.jl  PRIMED optimizer (K = 100)
-│   │   ├── 02_run_single_job.R      Single simulation job (R wrapper)
+│   │   ├── 02_run_single_job.R      Single simulation job
 │   │   ├── 03_run_parallel.sh       Parallel execution (40 jobs)
 │   │   └── 04_aggregate_results.R   Result aggregation
-│   ├── rectal/                     Rectal cancer MRI application
-│   │   ├── 01_cd_group_lasso.R      CD Group LASSO baseline
-│   │   ├── 02_primed_linear.R       PRIMED (linear dispersion)
-│   │   ├── 03_primed_quadratic.R    PRIMED (quadratic dispersion)
-│   │   ├── 04_bootstrap_stability.R Bootstrap stability analysis
-│   │   └── 05_scatter_plot.R        Consensus-disagreement scatter plot
-│   └── lidc/                       LIDC-IDRI lung nodule application
+│   ├── rectal/                     Rectal cancer application (Tables 4-7)
+│   │   ├── 01_primed_linear.R       PRIMED with linear dispersion
+│   │   ├── 02_primed_quadratic.R    Linear vs quadratic comparison
+│   │   └── 03_scatter_plot.R        Consensus-disagreement scatter plot
+│   └── lidc/                       LIDC-IDRI application (Tables 6, 8)
 │       ├── 01_extract_radiomics.py  PyRadiomics feature extraction
-│       ├── 02_apply_primed.R        PRIMED application
-│       ├── 03_cv10_evaluation.R     10-fold nested CV evaluation
-│       └── 04_bootstrap_stability.R Bootstrap stability analysis
+│       └── 02_cv10_evaluation.R     10-fold nested CV evaluation
 ├── data/
 │   ├── data.xlsx                   Rectal cancer multi-reader MRI data
 │   └── lidc_annotations.csv        LIDC-IDRI lung nodule annotations
-├── results/                      Analysis results
-│   ├── simulation/
-│   └── lidc/
+├── results/
 └── figures/
 ```
 
@@ -42,7 +36,7 @@ PRIMED/
 
 - **R** (>= 4.0) with packages: `tidyverse`, `readxl`, `grpreg`, `pROC`, `glmnet`, `parallel`
 - **Julia** (>= 1.8) with standard libraries
-- **Python** (>= 3.8) with `pyradiomics`, `SimpleITK`, `numpy`, `pandas` (for LIDC feature extraction only)
+- **Python** (>= 3.8) with `pyradiomics`, `SimpleITK` (for LIDC feature extraction only)
 
 ## Running the Code
 
@@ -58,16 +52,15 @@ Rscript 04_aggregate_results.R   # Aggregate results
 
 ```bash
 cd code/rectal
-Rscript 01_cd_group_lasso.R      # CD Group LASSO baseline
-Rscript 02_primed_linear.R       # PRIMED (linear dispersion)
-Rscript 03_primed_quadratic.R    # PRIMED (quadratic dispersion)
+Rscript 01_primed_linear.R       # PRIMED + baselines (Tables 4-5)
+Rscript 02_primed_quadratic.R    # Quadratic comparison (Tables 6-7)
 ```
 
 ### LIDC-IDRI Application
 
 ```bash
 cd code/lidc
-Rscript 03_cv10_evaluation.R     # 10-fold nested CV (requires radiomics_cd.csv)
+Rscript 02_cv10_evaluation.R     # 10-fold nested CV (Tables 6, 8)
 ```
 
 ## Data Availability

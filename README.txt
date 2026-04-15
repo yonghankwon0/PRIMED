@@ -31,17 +31,13 @@ data/                     입력 데이터
 
 code/                     분석 코드
   rectal/                   직장암 데이터 분석
-    01_cd_group_lasso.R       Group LASSO 분석 (CD GL, C LASSO)
-    02_primed_linear.R        PRIMED 적용 (선형 산포)
-    03_primed_quadratic.R     PRIMED 적용 (이차 산포)
-    04_bootstrap_stability.R  부트스트랩 안정성 분석
-    05_scatter_plot.R         합의-불일치 산점도 생성
+    01_primed_linear.R        PRIMED 적용 (선형 산포) + CD GL, C LASSO 비교
+    02_primed_quadratic.R     PRIMED 적용 (이차 산포) + 비교
+    03_scatter_plot.R         합의-불일치 산점도 생성
 
   lidc/                     LIDC-IDRI 폐 결절 분석
-    01_extract_radiomics.py   PyRadiomics 특징 추출 (60-worker 병렬)
-    02_apply_primed.R         PRIMED 적용
-    03_cv10_evaluation.R      10-fold nested CV 평가
-    04_bootstrap_stability.R  부트스트랩 안정성 분석
+    01_extract_radiomics.py   PyRadiomics 특징 추출 (병렬)
+    02_cv10_evaluation.R      10-fold nested CV 평가
 
   simulation/               시뮬레이션 연구
     01_primed_core.jl         PRIMED Julia 구현 (K<=50)

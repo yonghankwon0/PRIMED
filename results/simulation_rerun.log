@@ -1,0 +1,29 @@
+============================================================
+  Full Simulation with SD: 40 jobs
+  Wed Apr 15 06:23:08 AM UTC 2026
+  Strategy: 8 parallel × 8 Julia threads
+============================================================
+[06:23:08] Launching job 1/40
+[06:23:08] Launching job 2/40
+[06:23:08] Launching job 3/40
+[06:23:08] Launching job 4/40
+[06:23:08] Launching job 5/40
+[06:23:08] Launching job 6/40
+[06:23:08] Launching job 7/40
+[06:23:08] Launching job 8/40
+[06:33:23] Job 3 COMPLETED
+[06:33:23] Launching job 9/40
+[06:33:23] Job 4 COMPLETED
+[06:33:23] Launching job 10/40
+[06:33:25] Job 7 COMPLETED
+[06:33:25] Launching job 11/40
+[06:33:27] Job 5 COMPLETED
+[06:33:27] Launching job 12/40
+[06:33:29] Job 1 COMPLETED
+[06:33:29] Launching job 13/40
+[06:33:31] Job 2 COMPLETED
+[06:33:31] Launching job 14/40
+[06:33:31] Job 6 COMPLETED
+[06:33:31] Launching job 15/40
+[06:33:33] Job 8 COMPLETED
+[06:33:33] Launching job 16/40
