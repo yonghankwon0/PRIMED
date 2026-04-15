@@ -1,0 +1,604 @@
+\documentclass[a4paper,11pt]{article}
+
+\usepackage[hangul]{kotex}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{amsthm}
+\usepackage{graphicx}
+\usepackage{geometry}
+\geometry{margin=2.5cm}
+\usepackage{hyperref}
+\usepackage{setspace}
+\onehalfspacing
+
+\title{PRIMED: Multi-Reader 영상 데이터에서 이진 결과를 위한 선택적 벌칙 기반 결합 손실 추정}
+
+\author{저자 정보 생략}
+\date{}
+
+\begin{document}
+
+\maketitle
+
+%%================================%%
+%% 초록                           %%
+%%================================%%
+
+\begin{abstract}
+
+\noindent\textbf{배경:}
+여러 판독자가 동일한 의료 영상을 독립적으로 판독할 때, 이들의 해석은 빈번하게 불일치한다.
+기존 접근법은 이러한 판독자 간 변이를 제거해야 할 잡음으로 취급하지만, 변이 자체에 예측 정보가 포함되어 있을 수 있다.
+변이를 통합하는 기존 방법들은 단일 종단적 바이오마커에 초점을 맞추고 있으며, 변수 선택이 필요한 고차원 다변량 multi-reader 영상 데이터 환경을 다루지 못한다.
+
+\noindent\textbf{방법:}
+본 연구에서는 PRIMED (Penalized Regularization for Integrated Multi-path Estimation with Dispersion)를 제안한다. 이는 세 가지 정보 채널(합의(consensus, 판독자 점수의 평균), 불일치(disagreement, 판독자 간 표준편차), 그리고 이 둘 사이의 구조적 관계)을 통합하는 결합 손실 프레임워크이다.
+산포 모형(dispersion model)은 각 특징의 합의가 불일치를 어떻게 결정하는지를 포착하며, 잔차 불일치(residual disagreement, 합의로 설명되지 않는 성분)만이 결과 모형에 투입된다.
+결과 계수 $(\beta_k, \gamma_k)$에 group LASSO 벌칙이 적용되어 변수 선택을 수행하고, 산포 매개변수는 벌칙을 받지 않는다.
+시뮬레이션 연구와 두 가지 실제 데이터 적용(149명의 직장암 환자 다기관 multi-reader MRI 연구($K = 14$, $m = 5$명 판독자)와 LIDC-IDRI 폐 결절 데이터셋($K = 107$ radiomics 특징, $n = 1{,}390$ 결절, $m = 3$--$4$명 판독자))에서 성능을 평가하였다.
+
+\noindent\textbf{결과:}
+다양한 시뮬레이션 설정(신호대잡음비, 잡음 수준, $K = 100$까지의 차원 변화)에서 PRIMED는 일관되게 가장 높은 F1 점수와 AUC를 달성하였으며, 이 우위는 주로 높은 양성예측도(PPV)에 의해 주도되었다.
+Jaccard index로 측정한 변수 선택 안정성은 모든 차원에서 PRIMED가 가장 높았다(예: $K = 100$에서 $0.228$ vs.\ $0.182$ 및 $0.192$).
+직장암 적용에서 PRIMED는 합의-불일치 상관이 가장 강한 특징인 Pre\_DWI($r = -0.88$)를 포함한 두 특징을 선택하였는데, 이 특징은 경쟁 방법들이 놓치는 것이다.
+LIDC-IDRI 적용에서 PRIMED는 비슷한 예측 성능(10-fold CV AUC $0.901$)을 달성하면서 변수 선택 안정성이 상당히 높았다(Jaccard $0.795$ vs.\ $0.688$ 및 $0.560$).
+
+\noindent\textbf{결론:}
+PRIMED는 multi-reader 영상 연구에서 판독자 간 불일치를 활용하기 위한 원칙적 프레임워크를 제공한다.
+합의-불일치 관계를 공동으로 모형화하고 잔차 불일치를 예측 변수로 사용함으로써, 반복 간 일관된 안정성을 갖춘 우수한 변수 선택을 달성하며, 경쟁력 있는 예측 성능을 유지한다.
+두 가지 서로 다른 영상 양식(MRI, CT)과 규모($K = 14$에서 $K = 107$)에 대한 검증은 이러한 장점이 임상 환경을 넘어 일반화됨을 확인한다.
+\end{abstract}
+
+\noindent\textbf{키워드:} Multi-reader 영상, 변수 선택, Group LASSO, 판독자 간 불일치, 합의-불일치 프레임워크, 직장암, Radiomics, LIDC-IDRI, 폐 결절
+
+%%===================================================================
+\section{배경}\label{sec:background}
+%%===================================================================
+
+여러 판독자가 동일한 의료 영상을 독립적으로 판독할 때, 이들의 해석은 빈번하게 불일치한다.
+이러한 판독자 간 변이(inter-reader variability)는 영상 양식과 임상 과제를 불문하고 보편적으로 관찰된다: 영상의학과 전문의들은 MRI에서 종양 경계를 윤곽짓는 데 서로 다르고, 섬유화나 확산 제한과 같은 주관적 특징을 점수화하는 데에도 다르며, CT에서 결절 경계를 구획하는 데에도 다르다.
+기존의 접근법은 이러한 불일치를 제거해야 할 잡음(nuisance)으로 취급한다.
+급내상관계수(ICC)와 kappa와 같은 신뢰도 계수는 이를 정량화하고, 평균화 및 다수결 투표와 같은 요약 전략은 이를 제거하며, 회귀 보정(regression calibration) 및 SIMEX와 같은 측정 오차 방법은 이로 인한 감쇠를 보정한다.
+이러한 전략들은 모두 변이를 사용하기보다 폐기한다.
+
+그러나 변이 자체가 예측 정보를 담고 있을 수 있다는 증거가 증가하고 있다.
+의학의 다른 영역에서는 변이가 그 자체로 예측 인자로 인식되어 왔다: 방문 간 혈압 변이는 평균 혈압과 독립적으로 뇌졸중 및 심혈관 사건을 예측한다.
+결합 모형(joint model) 및 혼합효과 위치-척도 모형(mixed-effects location-scale model)이 피험자 내 변이를 결과 예측에 통합하기 위해 개발되었다.
+그러나 이러한 접근법들은 종단적으로 측정된 단일 바이오마커에 초점을 맞추고 있으며, $K$개의 특징이 동시에 평가되고 변수 선택이 필요한 multi-reader 영상의 고차원 다변량 환경을 다루지 못한다.
+이 공백은 현대 radiomics에서 특히 심각하다: 판독자마다 다른 분할(segmentation) 마스크에서 수백 개의 정량적 특징이 추출되어, 풍부하지만 활용되지 않는 판독자 간 불일치 정보의 원천을 생성한다.
+
+이는 근본적인 질문을 제기한다: 여러 판독자가 같은 영상을 평가할 때, 이들의 불일치는 단순히 제거되어야 하는가, 아니면 예측에 활용될 수 있는가?
+
+추가적인 복잡성은 반복 평가의 평균과 분산이 일반적으로 독립이 아니라는 점이다.
+유계 순서 척도에서 경계 효과(boundary effect)는 합의가 극단값 근처에 있을 때 불일치를 0에 가깝게 강제한다.
+이러한 기계적 제약을 넘어, 다양한 점수 수준에서의 차별적 확신도와 같은 판독자 특이적 요인은 특징별 합의-불일치 관계를 만들어내며, 그 방향과 강도는 특징마다 다르다.
+예를 들어, 149명의 직장암 환자를 대상으로 한 multi-reader MRI 연구에서 10개 순서 특징 중 8개가 합의와 불일치 사이에 상당한 상관관계를 보인다(95\% 신뢰구간이 0을 제외): Pre\_DWI의 $r = -0.88$에서 Post\_ADC의 $r = +0.37$까지 범위를 보인다.
+마찬가지로, LIDC-IDRI 폐 결절 데이터셋에서는 107개 radiomics 특징 중 84개가 양의 합의-불일치 상관을, 23개가 음의 상관을 보인다.
+이 구조적 관계는 합의와 불일치를 독립 투입 변수로 취급하면 손실되는 예측 정보를 담고 있다.
+
+자연스러운 출발점은 합의(판독자 점수의 평균)와 불일치(표준편차) 모두를 벌칙 회귀의 예측 변수로 취급하는 것이며, 이러한 관점을 합의-불일치(CD) 프레임워크라 부른다.
+직관적인 구현 방법은 각 특징의 합의-불일치 쌍에 group 벌칙을 적용하거나, LASSO를 통해 합의 평균에만 벌칙을 적용하는 것이다.
+그러나 어느 접근법이든 두 요약 통계량을 독립 투입 변수로 취급하며, 위에서 문서화한 구조적 관계를 무시한다.
+
+이러한 공백을 해소하기 위해, 본 연구에서는 PRIMED (Penalized Regularization for Integrated Multi-path Estimation with Dispersion)를 제안한다. 이는 세 가지 정보 채널(합의, 불일치, 그리고 이 둘 사이의 구조적 관계)을 통합하는 결합 손실 프레임워크이다.
+핵심 아이디어는 각 특징의 합의가 불일치를 어떻게 결정하는지를 포착하는 산포 모형을 적합하고, 합의로 설명되지 않는 성분인 잔차 불일치(residual disagreement)만을 결과 모형에 투입하는 것이다.
+결과 모형이 이 잔차에 의존하므로, 산포 매개변수 $\alpha_k$는 산포 및 결과 손실 양쪽으로부터 gradient 기여를 받아, 2단계 절차가 아닌 진정한 결합 추정(joint estimation)이 이루어진다.
+Group 벌칙은 결과 계수 $(\beta_k, \gamma_k)$에만 적용되어, 변수 선택이 결과 관련성만을 반영하도록 한다.
+본 연구에서는 시뮬레이션 연구와 두 가지 실제 데이터 적용을 통해 프레임워크를 검증한다: 직장암 multi-reader MRI 연구($K = 14$, $m = 5$명 판독자)와 폐 결절 악성도의 고차원 radiomics 연구($K = 107$, $m = 3$--$4$명 판독자).
+핵심 아이디어는 각 특징의 합의가 불일치를 어떻게 결정하는지를 포착하는 산포 모형을 적합하고, 합의로 설명되지 않는 성분인 \emph{잔차} 불일치만을 결과 모형에 투입하는 것이다.
+결과 모형이 이 잔차에 의존하기 때문에, 산포 매개변수 $\alpha_k$는 산포 손실과 결과 손실 모두로부터 경사도 기여를 받아, 2단계 절차가 아닌 진정한 결합 추정을 수행한다.
+Group 벌칙은 결과 계수 $(\beta_k, \gamma_k)$에만 적용되므로 변수 선택은 결과 관련성만을 반영한다.
+
+%%===================================================================
+\section{방법}\label{sec:methods}
+%%===================================================================
+
+%%-------------------------------------------------------------------
+\subsection{데이터 구조}\label{sec:data}
+%%-------------------------------------------------------------------
+
+$n$명의 피험자, $K$개의 영상 특징, $m$명의 판독자를 고려한다.
+$x_{ijk}$를 판독자 $j$ ($j = 1,\dots,m$)가 피험자 $i$ ($i = 1,\dots,n$)의 특징 $k$ ($k = 1,\dots,K$)에 부여한 점수라 하자.
+각 피험자-특징 쌍에 대해, 합의(판독자 간 표본 평균)와 불일치(판독자 간 표본 표준편차)를 다음과 같이 정의한다:
+\[
+  \bar X_{ik} = \frac{1}{m}\sum_{j=1}^m x_{ijk}, \qquad
+  S_{ik} = \left[\frac{1}{m-1}\sum_{j=1}^m (x_{ijk} - \bar X_{ik})^2\right]^{1/2}.
+\]
+판독자 수가 피험자에 따라 다를 수 있는 경우(예: 결측 평가가 있거나, LIDC-IDRI 적용에서처럼 결절마다 주석 작성자 수가 다른 경우), 위 정의에서 $m$을 피험자별 판독자 수 $m_i$로 대체한다.
+$Y_i \in \{0,1\}$를 피험자 $i$의 이진 결과라 하자.
+따라서 관측 데이터는 합의 행렬 $\bar X \in \mathbb{R}^{n \times K}$, 불일치 행렬 $S \in \mathbb{R}^{n \times K}$, 그리고 결과 벡터 $Y \in \{0,1\}^n$으로 구성된다.
+
+%%-------------------------------------------------------------------
+\subsection{합의-불일치 프레임워크}\label{sec:cd_framework}
+%%-------------------------------------------------------------------
+
+$S$를 폐기하는 대신, $\bar X$와 $S$ 모두를 $Y$의 잠재적 예측 변수로 취급하며, 이러한 관점을 합의-불일치(CD) 프레임워크라 부른다.
+이 프레임워크 내에서 두 가지 기본 전략이 자연스럽게 도출된다.
+첫 번째는 \emph{CD group LASSO} (CD~GL)로, 전체 집합 $(\bar X_1, S_1, \dots, \bar X_K, S_K)$에 대해 $Y$를 회귀하되 각 $(\bar X_k, S_k)$ 쌍을 연결하는 group LASSO 벌칙을 적용하여, 주어진 특징의 합의와 불일치가 함께 선택되거나 탈락되도록 한다.
+두 번째는 \emph{consensus LASSO} (C~LASSO)로, $(\bar X_1, \dots, \bar X_K)$에 대해서만 $\ell_1$ 벌칙으로 $Y$를 회귀하며, 합의만 사용하고 불일치 채널은 완전히 무시한다.
+
+두 방법 모두 $\bar X_k$와 $S_k$를 독립 투입 변수로 처리한다.
+그러나 \ref{sec:background}절에서 언급한 바와 같이, $\bar X_k$와 $S_k$는 일반적으로 상관되어 있으며, 이 구조적 관계는 특징마다 방향과 강도가 다르다.
+이들의 의존성을 고려하지 않고 $S_k$를 $\bar X_k$와 함께 포함하면, 불일치의 직접적 기여와 단순히 합의 수준을 반영하는 부분이 혼합되어 계수 추정과 변수 선택을 왜곡할 수 있다.
+PRIMED는 합의-불일치 관계를 명시적으로 모형화하고 불일치를 구조적으로 설명되는 성분과 잔차로 분해함으로써 이 한계를 해결한다.
+
+%%-------------------------------------------------------------------
+\subsection{결합 손실 함수}\label{sec:joint_loss}
+%%-------------------------------------------------------------------
+
+PRIMED 손실은 두 구성요소(산포 손실과 결과 손실)로 이루어지며, 각각 해당 영 기준선(null baseline)으로 정규화된다.
+그림 1 참조 (경로 다이어그램): 산포 모형(상단)은 합의를 불일치에 연결하고, 결과 모형(하단)은 합의와 잔차 불일치를 예측 변수로 사용한다.
+
+특징의 합의와 불일치가 일반적으로 상관되어 있으므로, 이 의존성을 고려하지 않고 둘 다 결과 모형에 투입하면 각각의 기여가 혼동된다.
+산포 손실은 이 관계를 명시적으로 포착한다: 각 특징 $k$에 대해 선형 회귀가 합의를 불일치에 연결한다:
+$S_{ik} = \alpha_{0k} + \alpha_k \bar X_{ik} + \varepsilon_{ik}$,
+여기서 $\alpha_{0k}$는 특징별 절편, $\alpha_k$는 합의 수준이 불일치에 미치는 영향을 정량화하는 기울기, $\varepsilon_{ik}$는 잔차 오차이다.
+제곱 오차 손실과 영 기준선(절편만 모형, 즉 모든 $k$에 대해 $\alpha_k = 0$)은 다음과 같다:
+\[
+  \mathcal{L}_{\mathrm{disp}} = \frac{1}{2n}\sum_{k=1}^K \sum_{i=1}^n (S_{ik} - \alpha_{0k} - \alpha_k \bar X_{ik})^2,
+  \qquad
+  \mathcal{L}_{\mathrm{disp}}^0 = \frac{1}{2}\sum_{k=1}^K \widehat{\mathrm{Var}}(S_k).
+\]
+
+산포 모형은 각 피험자-특징 쌍에 대해 잔차 불일치를 정의한다:
+\[
+  \tilde S_{ik} = S_{ik} - \alpha_{0k} - \alpha_k \bar X_{ik},
+\]
+즉, 합의 수준으로 설명되지 않는 판독자 불일치의 부분이다.
+이 잔차가 결과 모형에 사용되는 양이며, $\gamma_k$가 합의에 구조적으로 연결된 것을 \emph{넘어서는} 불일치의 효과를 포착하도록 보장한다.
+
+결과 모형은 $Y_i$를 합의와 잔차 불일치 예측 변수 모두에 대한 로지스틱 회귀이다.
+$\beta_0$를 절편, $\beta_k$를 특징 $k$의 합의 예측 변수에 대한 계수, $\gamma_k$를 특징 $k$의 잔차 불일치 예측 변수에 대한 계수라 하자.
+피험자 $i$의 예측 확률은 다음과 같다:
+$p_i = \mathrm{logit}^{-1}\!\bigl(\beta_0 + \sum_{k=1}^K \beta_k \bar X_{ik} + \sum_{k=1}^K \gamma_k \tilde S_{ik}\bigr)$.
+$\alpha_k$가 산포 모형 단독에서 OLS로 추정된다면, $\tilde S_k$는 구성상 정확히 $\bar X_k$에 대해 표본 직교가 되며, $\beta_k$와 $\gamma_k$는 선형 예측자의 겹치지 않는 성분을 포착한다.
+결합 추정에서는 결합 경사도(\ref{sec:optimization}절)가 $\gamma_k \neq 0$일 때 $\alpha_k$를 OLS 해로부터 이동시킬 수 있으므로, 정확한 직교성은 근사적이며 정확하지 않다; $\gamma_k = 0$인 특징에 대해서만 정확하게 성립한다.
+
+음의 로그우도와 영 기준선(절편만 모형, 주변 비율 $\bar Y = n^{-1}\sum_i Y_i$를 예측)은 다음과 같다:
+\[
+  \mathcal{L}_{\mathrm{out}} = -\frac{1}{n}\sum_{i=1}^n \bigl[Y_i \log p_i + (1-Y_i)\log(1-p_i)\bigr],
+  \qquad
+  \mathcal{L}_{\mathrm{out}}^0 = -\bigl[\bar Y \log \bar Y + (1-\bar Y)\log(1-\bar Y)\bigr].
+\]
+
+결과 손실이 잔차 불일치 $\tilde S_{ik}$에 의존하고, 이것이 다시 $\alpha$의 함수이므로, 결합 손실은 $\alpha$를 두 구성요소에 모두 결합시킨다:
+\begin{equation}\label{eq:joint_loss}
+  \mathcal{L}(\boldsymbol{\alpha}, \boldsymbol{\beta}, \boldsymbol{\gamma}) = \frac{\mathcal{L}_{\mathrm{disp}}(\boldsymbol{\alpha})}{\mathcal{L}_{\mathrm{disp}}^0}
+              + \frac{\mathcal{L}_{\mathrm{out}}(\boldsymbol{\alpha}, \boldsymbol{\beta}, \boldsymbol{\gamma})}{\mathcal{L}_{\mathrm{out}}^0}.
+\end{equation}
+각 구성요소는 영값으로 정규화되어 두 항 모두 영 모형에서 1.0으로 시작하므로, 가중치 하이퍼파라미터의 필요성을 제거한다.
+$\mathcal{L}_{\mathrm{out}}$의 $\tilde S_{ik}$를 통한 $\boldsymbol{\alpha}$ 의존성이 산포와 결과 매개변수의 진정한 결합 추정을 달성하는 메커니즘이다.
+
+%%-------------------------------------------------------------------
+\subsection{벌칙 구조}\label{sec:penalty}
+%%-------------------------------------------------------------------
+
+$\boldsymbol{\alpha} = (\alpha_1,\dots,\alpha_K)^T$, $\boldsymbol{\beta} = (\beta_1,\dots,\beta_K)^T$, $\boldsymbol{\gamma} = (\gamma_1,\dots,\gamma_K)^T$가 모든 특징의 기울기 계수를 모으고, $\lambda > 0$가 희소성을 제어하는 정규화 매개변수라 하자.
+벌칙화된 목적함수는 다음과 같다:
+\begin{equation}\label{eq:objective}
+  \min_{\boldsymbol{\alpha}, \boldsymbol{\beta}, \boldsymbol{\gamma}} \;\;
+  \mathcal{L}(\boldsymbol{\alpha}, \boldsymbol{\beta}, \boldsymbol{\gamma})
+  \;+\; \lambda \sum_{k=1}^K \sqrt{\beta_k^2 + \gamma_k^2}.
+\end{equation}
+벌칙은 각 특징 $k$의 결과 계수 $(\beta_k, \gamma_k)$에 적용되는 group LASSO 노름이다.
+그룹 구조는 각 특징을 합의 신호($\beta_k$)와 잔차 불일치 신호($\gamma_k$)를 모두 고려하여 전체적으로 평가하도록 보장하며, 한 채널만으로 개별 선택하는 것을 허용하지 않음으로써 허위의 합의 또는 불일치 효과에 기반하여 특징이 선택되는 것을 방지한다.
+각 그룹이 일관되게 두 개의 계수를 포함하므로, 그룹별 가중치($\sqrt{p_g}$ 스케일링 등)는 불필요하며 생략한다.
+
+절편 $\alpha_{0k}$와 $\beta_0$는 표준적으로 벌칙을 받지 않는다.
+결정적으로, 산포 기울기 $\alpha_k$ 역시 벌칙을 받지 않는다: 이들은 벌칙에 의한 수축 없이 경사 하강법으로 갱신된다.
+$\alpha_k$가 벌칙을 받지 않지만, 별도의 단계에서 추정되는 것은 \emph{아니다}: $\mathcal{L}_{\mathrm{out}}$가 $\tilde S_{ik}$를 통해 $\alpha_k$에 의존하므로, 결과 손실의 $\alpha_k$에 대한 경사도가 추가적인 갱신 신호를 제공한다(\ref{sec:optimization}절 참조).
+이러한 선택적 벌칙은 합의-불일치 관계가 결과 관련성에 관계없이 벌칙에 의한 편향 없이 추정되도록 보장하면서, 변수 선택은 결과 계수 $(\beta_k, \gamma_k)$에 의해서만 주도되도록 한다.
+
+모든 예측 변수($\bar X_k$ 및 $S_k$)는 벌칙 적용 전에 훈련 세트 내에서 평균 0, 단위 분산으로 표준화하여, 서로 다른 단위를 가진 특징들에 대해 group LASSO 벌칙이 공통 척도로 적용되도록 한다.
+
+특징 $k$는 $\hat\beta_k \neq 0$ 또는 $\hat\gamma_k \neq 0$이면 선택된다.
+
+%%-------------------------------------------------------------------
+\subsection{최적화}\label{sec:optimization}
+%%-------------------------------------------------------------------
+
+식~\eqref{eq:objective}를 근위 경사 하강법(proximal gradient descent)으로 최소화한다(알고리즘 1 참조).
+$\eta > 0$를 단계 크기(학습률)라 하자.
+각 반복에서 모든 매개변수가 경사도 단계를 받는다.
+산포 매개변수 $(\alpha_{0k}, \alpha_k)$는 \emph{두} 원천으로부터 경사도를 받는다: 산포 손실 $\mathcal{L}_{\mathrm{disp}}$와, $\tilde S_{ik} = S_{ik} - \alpha_{0k} - \alpha_k \bar X_{ik}$가 결과 모형에 투입되므로 결과 손실 $\mathcal{L}_{\mathrm{out}}$이다.
+결과 손실로부터의 $\alpha_k$에 대한 결합 경사도는 다음과 같다:
+\[
+  \frac{\partial \mathcal{L}_{\mathrm{out}}}{\partial \alpha_k}
+  = \frac{\gamma_k}{n\,\mathcal{L}_{\mathrm{out}}^0} \sum_{i=1}^n (p_i - Y_i)\,\bar X_{ik},
+\]
+이는 $\partial \tilde S_{ik}/\partial \alpha_k = -\bar X_{ik}$로부터 발생한다.
+이 경사도는 $\gamma_k = 0$일 때(즉, 특징 $k$가 선택되지 않을 때) 소실되므로, 결과 관련 특징만이 두 손실을 결합시킨다.
+더 정확히, 임의의 정류점에서 $\mathcal{L}$의 $\alpha_k$에 대한 경사도는 다음을 만족한다:
+\begin{equation}\label{eq:stationary_alpha}
+  \underbrace{\frac{1}{n\,\mathcal{L}_{\mathrm{disp}}^0}\sum_{i=1}^n \tilde S_{ik}\,\bar X_{ik}}_{\text{산포 경사도}}
+  \;=\;
+  \underbrace{\frac{\gamma_k}{n\,\mathcal{L}_{\mathrm{out}}^0}\sum_{i=1}^n (p_i - Y_i)\,\bar X_{ik}}_{\text{결합 경사도}}.
+\end{equation}
+결합 목적함수가 비볼록이므로(아래 참조), \eqref{eq:stationary_alpha}는 유일한 전역 해가 아닌, 알고리즘이 도달하는 임의의 정류점을 특성화한다.
+그러한 점에서, $\gamma_k = 0$이면 우변이 소실되어 $\sum_i \tilde S_{ik}\,\bar X_{ik} = 0$이 된다: 잔차 $\tilde S_k$는 $\bar X_k$에 대해 표본 직교이며, $\hat\alpha_k$는 최소제곱(OLS) 추정치와 일치한다.
+$\gamma_k \neq 0$이면, $\hat\alpha_k$는 OLS 해로부터 이탈한다; 결합 경사도가 결합 손실을 줄이는 방향으로 $\alpha_k$를 이동시켜, 결과 예측에 유익한 산포 모형의 의도적 편향을 생성한다.
+결과 절편 $\beta_0$는 표준 경사 하강법으로 갱신된다.
+결과 계수 $(\beta_k, \gamma_k)$는 그룹별 근위(소프트 임계값) 단계를 받는다:
+\[
+  (\beta_k, \gamma_k) \leftarrow
+  \begin{cases}
+    \displaystyle \Bigl(1 - \frac{\eta\lambda}{\|(\tilde\beta_k, \tilde\gamma_k)\|_2}\Bigr)
+    (\tilde\beta_k, \tilde\gamma_k),
+    & \text{if } \|(\tilde\beta_k, \tilde\gamma_k)\|_2 > \eta\lambda, \\[6pt]
+    (0,0), & \text{otherwise},
+  \end{cases}
+\]
+여기서 $(\tilde\beta_k, \tilde\gamma_k)$는 경사도 적용 후의 값이다.
+이 근위 연산자는 전체 $(\beta_k, \gamma_k)$ 쌍을 정확히 0으로 설정하는 핵심 메커니즘으로, 그룹별 희소성을 생성한다.
+산포 계수 $\alpha_k$는 결코 수축되지 않으므로, 합의-불일치 관계가 결과 관련성에 관계없이 편향 없이 추정된다.
+
+수렴은 매개변수의 상대 변화가 허용 오차 $\epsilon = 10^{-6}$ 이하로 떨어지거나, 최대 반복 횟수 $10{,}000$회 이후에 선언된다.
+실제로, 단계 크기 $\eta = 0.005$는 검토된 모든 설정에서 안정적인 수렴을 제공한다.
+
+결합 목적함수~\eqref{eq:objective}는 $(\boldsymbol{\alpha}, \boldsymbol{\beta}, \boldsymbol{\gamma})$에 대해 결합적으로 비볼록이다. 이는 $\mathcal{L}_{\mathrm{out}}$가 잔차 $\tilde S_{ik}$를 통해 이선형 곱 $\gamma_k \alpha_k$를 포함하기 때문이다.
+$(\boldsymbol{\beta}, \boldsymbol{\gamma})$를 고정하면 $\boldsymbol{\alpha}$에 대해 볼록이고, $\boldsymbol{\alpha}$를 고정하면 $(\boldsymbol{\beta}, \boldsymbol{\gamma})$에 대해 볼록이므로, 근위 경사 알고리즘은 정류점에 수렴하지만 반드시 전역 최솟값에 수렴하는 것은 아니다.
+실험에서 수렴은 초기화에 대해 강건했으며, 국소 최솟값에 대한 민감성은 관찰되지 않았다.
+
+비볼록 목적함수의 실용적 우려 중 하나는 정규화 경로가 비단조적일 수 있다는 점이다: $\lambda$를 줄일 때 $\hat\alpha_k$의 변화가 $\tilde S_{ik}$를 바꾸고 손실 경관을 재구성하여, 원칙적으로 이미 선택된 특징이 탈락할 수 있다.
+볼록 group LASSO에서는 경로 단조성(선택 특징 수가 $\lambda$ 감소에 따라 증가)이 수학적으로 보장되지만, PRIMED에는 이러한 보장이 없다.
+이를 실증적으로 확인하기 위해 LIDC-IDRI 데이터셋($K = 107$)에서 $\lambda_{\max}$(0개 선택)부터 $\lambda_{\max}/1000$(107개 전부 선택)까지 로그 간격 50개 $\lambda$ 값에 대해 전체 정규화 경로를 추적하였으며, 각각 영 초기화(cold start)에서 실행하였다.
+경로는 엄격하게 단조적이었다: 선택 특징 수가 매 단계에서 증가하거나 유지되었으며, 49개 전이에서 위반이 0건이었다.
+이는 이론적 비볼록성에도 불구하고 $\alpha_k$와 $\gamma_k$ 사이의 이선형 결합이 실제로 경로 규칙성을 방해하지 않음을 시사한다. 이는 대부분의 특징에서 산포 모형이 잘 식별되고 결합 경사도가 $\alpha_k$의 OLS 해 주변에서 작은 섭동만을 생성하기 때문으로 보인다.
+
+%%-------------------------------------------------------------------
+\subsection{계수 해석}\label{sec:properties}
+%%-------------------------------------------------------------------
+
+$\tilde S_{ik} = S_{ik} - \alpha_{0k} - \alpha_k \bar X_{ik}$를 선형 예측자 $\eta_i$에 대입하면 다음의 대수적 항등식을 얻는다:
+\[
+  \eta_i = \underbrace{\bigl(\beta_0 - \textstyle\sum_k \gamma_k \alpha_{0k}\bigr)}_{\text{절편}}
+         + \sum_{k=1}^K \underbrace{(\beta_k - \gamma_k \alpha_k)}_{\beta_k^{\mathrm{CD}}} \bar X_{ik}
+         + \sum_{k=1}^K \gamma_k S_{ik},
+\]
+여기서 $\beta_k^{\mathrm{CD}} = \beta_k - \gamma_k \alpha_k$는 CD~GL에서처럼 $S_k$ (가 아닌 $\tilde S_k$)가 직접 예측 변수로 투입될 경우 $\bar X_k$가 받는 계수이다.
+이 항등식은 선형 예측자의 구조에만 관련되므로 연결 함수에 관계없이 성립한다.
+정리하면 다음을 얻는다:
+\begin{equation}\label{eq:coef_relation}
+  \beta_k = \beta_k^{\mathrm{CD}} + \gamma_k \alpha_k,
+\end{equation}
+이는 $\bar X_k$와 $Y$의 연관(선형 예측자 척도에서)을 직접 성분 $\beta_k$와 불일치를 통해 매개되는 간접 성분 $\gamma_k \alpha_k$로 분해한다:
+\begin{equation}\label{eq:total_effect}
+  \underbrace{\beta_k^{\mathrm{total}}}_{\text{총 효과}} = \underbrace{\beta_k}_{\text{직접 효과}} + \underbrace{\alpha_k \cdot \gamma_k}_{\text{불일치를 통한 간접 효과}}.
+\end{equation}
+이 분해는 매개 분석(mediation analysis)에서 사용되는 총/직접/간접 효과 분할과 형태적으로 유사하지만, 벌칙 회귀의 선형 예측자에 적용된 것이며 인과적 해석을 수반하지 않는다.
+이는 PRIMED의 계수 $\beta_k$가 CD~GL의 계수 $\beta_k^{\mathrm{CD}}$와 어떻게 관련되는지를 명확히 하고, 합의-불일치 관계($\alpha_k$)가 불일치 채널을 통해 $\bar X_k$와 $Y$ 사이의 연관을 얼마나 매개하는지를 정량화하는 부기 장치(bookkeeping device)의 역할을 한다.
+
+$|\hat\alpha_k|$가 크고 $r(\bar X_k, S_k)$가 $\pm 1$에 근접하면, 잔차 $\tilde S_k$의 분산이 작아져 $\hat\gamma_k$의 정밀도가 자연스럽게 제한된다.
+이는 방법의 결함이 아니라 오히려 의미 있는 결과이다: 합의-불일치 관계가 거의 결정적(deterministic)이면 결과를 예측하는 데 사용할 잔차 불일치가 거의 남지 않으며, PRIMED는 이를 작거나 0인 $\hat\gamma_k$로 올바르게 반영한다.
+그룹 선택 결정은 개별 계수가 아닌 결합 노름 $\|(\hat\beta_k, \hat\gamma_k)\|_2$에 의존하므로 영향받지 않는다.
+
+%%-------------------------------------------------------------------
+\subsection{정규화 경로와 교차검증}\label{sec:lambda_cv}
+%%-------------------------------------------------------------------
+
+정규화 매개변수 $\lambda$는 해의 희소성을 제어한다: $\lambda$가 클수록 더 많은 $(\beta_k, \gamma_k)$ 쌍이 0으로 설정된다.
+\texttt{glmnet}의 접근법과 유사하게 데이터 기반 정규화 경로를 구성한다.
+$\lambda_{\max}$를 모든 $(\beta_k, \gamma_k) = (0, 0)$이 되는 가장 작은 $\lambda$로 정의하며, 이는 절편만 모형에서의 최대 그룹 gradient 노름으로 계산된다(부록~\ref{secA_lambda} 참조).
+$\lambda_{\max} \cdot \epsilon$에서 $\lambda_{\max}$까지 로그 등간격의 $L = 100$개 값을 생성하여, 고정 격자 지정에 대한 민감도를 피하고 데이터의 스케일에 자동으로 적응한다.
+시뮬레이션에서는 $\epsilon = 0.01$을, LIDC-IDRI 적용에서는 더 큰 특징 공간이 작은 $\lambda$에서 더 세밀한 해상도를 필요로 하므로 $\epsilon = 0.001$을 사용한다(부록~\ref{secA_lambda} 참조).
+
+최적 $\lambda$는 층화 5겹 교차검증으로 선택된다.
+데이터는 $Y$로 층화하여 클래스 균형을 유지하면서 5개의 겹(fold)으로 분할된다.
+각 후보 $\lambda_j$와 겹 $f$에 대해:
+\begin{enumerate}
+  \item 훈련 집합(겹 $\neq f$)에서 PRIMED 모형을 적합한다.
+  \item 훈련 집합 추정치 $\hat\alpha_{0k}$와 $\hat\alpha_k$를 사용하여 보류 겹의 잔차 불일치를 계산한다: 겹 $f$의 $i$에 대해 $\tilde S_{ik} = S_{ik} - \hat\alpha_{0k} - \hat\alpha_k \bar X_{ik}$.
+  \item 보류 겹 $f$에서 결과 이탈도를 평가한다:
+    \[
+      D_f(\lambda_j) = -\frac{2}{n_f}\sum_{i \in \text{fold } f}
+        \bigl[Y_i \log \hat p_i + (1-Y_i)\log(1-\hat p_i)\bigr].
+    \]
+\end{enumerate}
+교차검증 이탈도는 $\mathrm{CV}(\lambda_j) = \frac{1}{5}\sum_{f=1}^5 D_f(\lambda_j)$이다.
+선택된 $\lambda^* = \arg\min_j \mathrm{CV}(\lambda_j)$이며, 최종 모형은 $\lambda^*$로 전체 데이터셋에서 재적합된다.
+
+벌칙이 $(\beta_k, \gamma_k)$에만 적용되므로, $\lambda$ 선택에는 결과 이탈도만 사용되고 산포 손실은 사용되지 않는다.
+
+대안으로, 데이터 기반 정규화 경로를 구성할 수 있다.
+$\lambda_{\max}$를 모든 $(\beta_k, \gamma_k) = (0, 0)$이 되는 가장 작은 $\lambda$, 즉 절편만 해에서의 최대 그룹 경사도 노름으로 계산한다.
+$\lambda_{\max}/1000$에서 $\lambda_{\max}$까지의 로그 간격 격자가 데이터의 척도에 자동으로 적응하는 $L = 100$개 후보 값을 제공한다.
+\texttt{glmnet}의 경로 구성과 유사한 이 접근법은 시뮬레이션 및 LIDC-IDRI 적용(\ref{sec:highdim}--\ref{sec:lidc}절)에서 사용된다.
+
+%%-------------------------------------------------------------------
+\subsection{비선형 산포 모형}\label{sec:nonlinear}
+%%-------------------------------------------------------------------
+
+선형 산포 모형 $S_{ik} = \alpha_{0k} + \alpha_k \bar X_{ik} + \varepsilon_{ik}$는 가장 단순한 선택이지만, 합의-불일치 관계가 반드시 선형일 필요는 없다.
+유계 순서 척도에서 경계 효과는 합의가 양 극단에 가까울 때 불일치를 0에 가깝게 강제하여, 선형 모형이 포착할 수 없는 역U자형 관계를 생성한다.
+PRIMED는 선형 모형을 다항식으로 대체하여 비선형 산포를 수용한다.
+특히, 이차 산포 모형
+\begin{equation}\label{eq:quad_disp}
+  S_{ik} = \alpha_{0k} + \alpha_{1k} \bar X_{ik} + \alpha_{2k} \bar X_{ik}^2 + \varepsilon_{ik}
+\end{equation}
+은 특징당 하나의 추가 매개변수로 역U자 패턴을 포착한다.
+잔차 불일치는 $\tilde S_{ik} = S_{ik} - \alpha_{0k} - \alpha_{1k} \bar X_{ik} - \alpha_{2k} \bar X_{ik}^2$가 되며, 결과 손실로부터의 결합 경사도는 자연스럽게 일반화된다:
+\[
+  \frac{\partial \mathcal{L}_{\mathrm{out}}}{\partial \alpha_{1k}}
+  = \frac{\gamma_k}{n\,\mathcal{L}_{\mathrm{out}}^0} \sum_{i=1}^n (p_i - Y_i)\,\bar X_{ik}, \qquad
+  \frac{\partial \mathcal{L}_{\mathrm{out}}}{\partial \alpha_{2k}}
+  = \frac{\gamma_k}{n\,\mathcal{L}_{\mathrm{out}}^0} \sum_{i=1}^n (p_i - Y_i)\,\bar X_{ik}^2.
+\]
+프레임워크의 다른 모든 구성요소(결과 모형, $(\beta_k, \gamma_k)$에 대한 group 벌칙, 근위 경사 알고리즘)는 변경되지 않는다.
+$\alpha_{1k}$와 $\alpha_{2k}$ 모두 선택적 벌칙 원칙에 따라 벌칙을 받지 않는다.
+\ref{sec:application}절에서 직장암 데이터에 대한 선형 및 이차 산포 모형을 비교한다.
+
+%%-------------------------------------------------------------------
+\subsection{비교 방법}\label{sec:comparison}
+%%-------------------------------------------------------------------
+
+PRIMED를 \ref{sec:cd_framework}절에서 소개한 두 기본 전략과 비교한다.
+CD group LASSO (CD~GL)은 \texttt{grpreg}을 통해, consensus LASSO (C~LASSO)는 \texttt{glmnet}을 통해 구현된다.
+두 방법 모두 공정한 비교를 위해 PRIMED와 동일한 겹 할당을 사용하는 층화 5겹 교차검증으로 $\lambda$를 선택한다.
+
+두 방법 모두 PRIMED 목적함수의 극한 경우로 볼 수 있다.
+$\alpha_k$가 모든 $k$에 대해 0으로 제약되면, 정규화된 산포 손실 $\mathcal{L}_{\mathrm{disp}}/\mathcal{L}_{\mathrm{disp}}^0$는 1.0의 상수가 되고, $\tilde S_{ik}$는 $S_{ik} - \bar S_k$로 축소된다; 결과 손실은 $(\bar X_k, S_k - \bar S_k)$에 대한 group LASSO가 되며, 이는 CD~GL과 동일한 함수 형태를 가지지만 원시 $S_k$ 대신 중심화된 불일치를 사용한다.
+$\gamma_k$가 모든 $k$에 대해 0으로 제약되면, group 벌칙은 $\lambda|\beta_k|$로 축소되고, 결과 모형은 합의에만 의존하여 C~LASSO를 복원한다.
+이러한 대응은 구조적이다: 실제 계수 추정치는 PRIMED와 기본 방법이 서로 다른 최적화 절차와 손실 함수를 사용하기 때문에 다를 수 있다.
+
+
+%%===================================================================
+\section{결과}\label{sec:results}
+%%===================================================================
+
+%%-------------------------------------------------------------------
+\subsection{잡음 변수 시뮬레이션}\label{sec:noise_sim}
+%%-------------------------------------------------------------------
+
+각 피험자 $i$와 특징 $k$에 대해, 데이터는 다음과 같이 생성된다:
+\begin{align}
+  \mu_{ik} &\sim N(0,1), \notag \\
+  \sigma_{ik} &= \exp(\alpha_k \mu_{ik} + \varepsilon_{ik}), \quad \varepsilon_{ik} \sim N(0, \tau^2), \label{eq:dgp} \\
+  x_{ijk} &\sim N(\mu_{ik}, \sigma_{ik}^2), \quad j=1,\dots,m, \notag \\
+  P(Y_i = 1) &= \mathrm{logit}^{-1}\!\Bigl(\beta_0 + \textstyle\sum_k \beta_k \mu_{ik} + \sum_k \gamma_k \sigma_{ik}\Bigr). \notag
+\end{align}
+매개변수 $\tau$는 산포 채널의 잡음을 제어한다: $\tau$가 증가하면 $S_k$는 잠재 $\sigma_{ik}$의 더 잡음이 많은 대리 변수가 된다.
+
+표준 변수 선택 용어를 따라, $K$개의 특징을 데이터 생성 과정에서의 역할에 따라 세 유형으로 분류한다:
+\begin{itemize}
+  \item \emph{활성(Active)} 특징 ($\beta_k \neq 0$ 또는 $\gamma_k \neq 0$): 합의 또는 불일치가 $Y$에 기여하는 결과 관련 특징.
+  \item \emph{잡음(Noise)} 특징 ($\alpha_k \neq 0$, $\beta_k = \gamma_k = 0$): 합의-불일치 관계(판독자 효과)를 보이지만 결과 관련성이 없는 특징. 이들의 비자명한 산포 구조가 결과 신호로 오인될 수 있어 변수 선택에서 가장 어려운 특징이다.
+  \item \emph{영(Null)} 특징 ($\alpha_k = \beta_k = \gamma_k = 0$): 어떤 경로에도 효과가 없는 특징.
+\end{itemize}
+
+두 가지 데이터 생성 과정을 고려한다:
+\begin{itemize}
+  \item \textbf{DGP~1} ($\gamma_k \neq 0$): 불일치가 $\gamma_k$를 통해 결과에 직접 기여한다.
+    활성 특징에 대해 $\alpha_k = \beta_k = \gamma_k = c$ (세 채널 모두 동일한 크기로 기여하도록 단순화를 위해 같게 설정).
+  \item \textbf{DGP~2} ($\gamma_k = 0$): 불일치가 존재하지만($\alpha_k \neq 0$을 통해) 결과에는 영향을 미치지 않는다.
+    활성 특징에 대해 $\alpha_k = \beta_k = c$이고 $\gamma_k = 0$.
+\end{itemize}
+DGP~1은 PRIMED가 불일치 신호를 활용할 수 있는지를 검정하고, DGP~2는 불일치가 결과와 무관할 때 PRIMED가 거짓 선택을 피할 수 있는지를 검정한다.
+
+$K = 20$ 특징: 7개 활성, 3개 잡음 ($\alpha_k = c$, $\beta_k = \gamma_k = 0$), 10개 영 ($\alpha_k = \beta_k = \gamma_k = 0$).
+표본 크기 $n = 200$, 반복 $B = 50$, 판독자 $m = 5$, $\tau = 0.3$.
+그림 2 참조 (변수 구조 다이어그램).
+
+모든 활성 특징은 공통 계수 크기 $c$를 공유한다.
+McKelvey--Zavoina 신호대잡음비 $\mathrm{SNR} = \mathrm{Var}(\eta) / (\pi^2/3)$가 목표값과 같도록 $c$를 설정하며, 여기서 $\eta = \beta_0 + \sum_k \beta_k \mu_{ik} + \sum_k \gamma_k \sigma_{ik}$은 선형 예측자이다.
+두 가지 설정을 검토한다: $\mathrm{SNR} = 0.5$와 $\mathrm{SNR} = 1.0$.
+절편 $\beta_0$는 $E[Y] \approx 0.5$가 되도록 보정된다.
+
+두 시나리오를 비교한다:
+\begin{itemize}
+  \item \textbf{S1}: 잡음 변수 없음 ($\alpha_{8\text{--}10} = 0$).
+  \item \textbf{S2}: 잡음 존재 ($\alpha_{8\text{--}10} = c$, $\beta_{8\text{--}10} = \gamma_{8\text{--}10} = 0$).
+\end{itemize}
+
+변수 선택 성능은 각 방법이 선택한 특징 집합을 진정한 활성 집합과 비교하여 평가한다.
+TPR(진양성률)은 진정으로 활성인 특징 중 선택된 비율, PPV(양성예측도)는 선택된 특징 중 진정으로 활성인 비율, F1은 이들의 조화 평균이다: $\mathrm{F1} = 2 \cdot \mathrm{PPV} \cdot \mathrm{TPR} / (\mathrm{PPV} + \mathrm{TPR})$.
+예측 성능은 동일한 DGP에서 독립적으로 생성된 검정 집합에서의 ROC 곡선 아래 면적(AUC)으로 측정한다.
+모든 지표는 $B$회 반복에 걸쳐 평균한다.
+
+표 1 참조 (DGP~1에 대한 F1 및 AUC 결과).
+PRIMED는 S1과 S2 모두에서 양 SNR 수준에서 가장 높은 AUC를 달성하며, 대부분의 설정에서 가장 높은 F1을 달성한다.
+$\mathrm{SNR} = 1.0$ (S1)에서 PRIMED는 F1 $.730$을 달성하며, 이는 CD~GL의 $.702$, C~LASSO의 $.699$와 비교된다.
+
+표 2 참조 (불일치가 결과에 기여하지 않는 DGP~2 결과).
+PRIMED는 모든 설정에서 다시 가장 높은 F1과 AUC를 달성한다.
+$\mathrm{SNR} = 1.0$ (S2)에서 PRIMED는 F1 $.740$을 달성하며, 이는 CD~GL의 $.704$, C~LASSO의 $.705$와 비교되고, 차이는 주로 더 높은 PPV에 의해 주도된다.
+
+%%-------------------------------------------------------------------
+\subsection{피험자별 잡음($\tau$)에 대한 민감도}\label{sec:high_tau}
+%%-------------------------------------------------------------------
+
+\ref{sec:noise_sim}절과 동일한 $K = 20$ 구조를 사용하되, $\tau \in \{0.3, 0.6, 0.9\}$를 모든 DGP$\times$시나리오 조합에서 변화시킨다.
+$\tau$가 증가하면 피험자별 잡음 $\varepsilon_{ik}$가 산포 채널을 지배한다: $\tau = 0.9$에서 $\mathrm{Var}(\sigma_k)$는 $\tau = 0.3$에서의 대략 11배이므로, $S_k$는 $\sigma_{ik}$의 훨씬 더 잡음이 많은 대리 변수가 된다.
+계수 $c$는 각 $(\tau, \mathrm{SNR})$ 조합에서 SNR을 일정하게 유지하도록 재보정되어, 성능 변화가 신호 강도가 아닌 $\tau$에 기인하도록 한다.
+
+표 3 참조 (DGP~1 (S2: 잡음 존재)에 대한 F1).
+C~LASSO의 F1은 $\tau$ 증가에 따라 급격히 저하된다: $\mathrm{SNR} = 0.5$에서 F1이 $.688$ ($\tau = 0.3$)에서 $.286$ ($\tau = 0.9$)으로 하락한다.
+PRIMED는 경쟁력 있거나 가장 높은 F1을 모든 $\tau$ 수준에서 유지한다(그림 3 참조).
+$\mathrm{SNR} = 1.0$에서 PRIMED는 F1 $.717/.740/.724$를 달성하며, 이는 CD~GL의 $.701/.681/.683$과 비교된다.
+
+표 4 참조 (모든 DGP$\times$시나리오 조합으로 확장한 분석).
+DGP~1 (S1)에서 패턴은 S2를 반영하되 절대 F1 값이 약간 높다.
+DGP~2 ($\gamma = 0$)에서 PRIMED는 $\tau \leq 0.6$에서 가장 높은 F1을 유지한다; $\tau = 0.9$, $\mathrm{SNR} = 0.5$에서는 모든 방법이 유사하게 수행된다(F1 $\approx .55$--.59), 이는 해당 조건의 본질적 어려움을 반영한다.
+주목할 만한 것은, $\gamma = 0$일 때 결과 신호가 전적으로 합의 채널에 존재하므로, C~LASSO가 DGP~2에서는 DGP~1에서처럼 붕괴하지 않는다는 점이다.
+
+%%-------------------------------------------------------------------
+\subsection{차원 증가 ($K = 50, 100$)}\label{sec:highdim}
+%%-------------------------------------------------------------------
+
+특징 수를 $K = 50$ 및 $K = 100$으로 증가시키되, $n = 200$, DGP~1과 DGP~2 모두에서 실시한다.
+다른 모든 설정은 \ref{sec:noise_sim}절과 동일하다: $\tau = 0.3$, $m = 5$, $B = 50$.
+활성 특징 수와 잡음 특징 수는 각각 7개와 3개로 고정되며, $K = 20$을 초과하는 추가 특징은 영 특징($\alpha_k = \beta_k = \gamma_k = 0$)이다.
+계수 $c$와 절편 $\beta_0$는 각 SNR에 대해 재보정된다.
+
+표 5, 6 참조 (DGP~1에 대한 F1 및 AUC).
+PRIMED는 모든 차원에서 일관된 AUC 우위를 유지하지만, F1 우위는 $K$에 따라 엄격하게 단조적이지는 않다.
+$\mathrm{SNR} = 1.0$ (S2)에서 PRIMED는 F1 $.585$ ($K = 50$) 및 $.500$ ($K = 100$)을 달성하며, 이는 CD~GL의 $.619/.477$, C~LASSO의 $.546/.497$과 비교된다.
+그림 4 참조 ($K \in \{20, 50, 100\}$에 걸친 F1 격차 확대 시각화).
+
+표 7, 8 참조 (DGP~2 ($\gamma = 0$)에 대한 대응 결과).
+패턴은 일관적이다: PRIMED는 모든 설정에서 가장 높은 F1을 달성한다.
+$K = 100$, $\mathrm{SNR} = 1.0$ (S2)에서 PRIMED는 F1 $.591$을 달성하며, 이는 CD~GL의 $.481$, C~LASSO의 $.482$와 비교되어 격차가 $.100$을 초과한다. 이는 DGP~1에서의 패턴과 일관적이다.
+이 장점은 PRIMED의 높은 PPV에 의해 주도되며, $\gamma = 0$일 때에도 산포 구조를 결과 관련성으로부터 분리하는 능력을 반영한다.
+
+F1과 AUC 외에도, Jaccard 지수를 통해 변수 선택 안정성을 평가하며, 이는 $\binom{B}{2}$개의 모든 반복 쌍에 대해 평균한다.
+표 9 참조 ($\mathrm{SNR} = 1.0$에서 DGP~1, S2 시나리오의 결과).
+PRIMED는 모든 차원에서 가장 높은 Jaccard 지수를 달성한다: $0.507$ ($K = 20$), $0.352$ ($K = 50$), $0.228$ ($K = 100$). 이는 CD~GL의 $0.485/0.306/0.182$, C~LASSO의 $0.416/0.318/0.192$와 비교된다.
+모든 방법이 $K$ 증가에 따라 안정성이 감소하지만, PRIMED의 장점은 고차원에서 증폭된다: CD~GL 대비 격차가 $K = 20$에서 $+0.022$에서 $K = 100$에서 $+0.046$으로 증가한다.
+
+%%-------------------------------------------------------------------
+\subsection{적용: 직장암 pCR 예측}\label{sec:application}
+%%-------------------------------------------------------------------
+
+\subsubsection{데이터 및 설계}
+
+PRIMED를 직장암 환자의 multi-reader MRI 연구에 적용한다.
+데이터셋은 수술 전 항암화학방사선요법을 받은 3개 기관의 149명 환자로 구성된다.
+5명의 영상의학과 전문의가 각 환자에 대해 14개의 MRI 특징을 독립적으로 평가하였다: 4개 이진 특징과 10개 순서 특징.
+결과 변수는 병리학적 완전 관해(pCR)이다.
+
+각 순서 특징 $k$에 대해, 합의 $\bar X_k$는 5명의 판독자 점수의 평균으로, 불일치 $S_k$는 표준편차로 정의된다.
+이진 특징은 판독자 평균 비율로만 모형에 투입된다. 이는 이진 특징의 불일치가 합의의 결정론적 함수이기 때문이다.
+
+데이터는 기관별로 분할된다: 기관 1 ($n = 50$, pCR 비율 34.0\%)은 훈련 집합으로, 기관 2와 3 ($n = 99$, pCR 비율 15.2\%)은 외부 검증 집합으로 사용된다.
+
+\subsubsection{산포 구조}
+
+모형 적합 전에 이 데이터셋의 합의-불일치 관계를 검토한다.
+표 10 참조 (각 순서 특징의 합의-불일치 Pearson 상관계수와 95\% 신뢰구간).
+그림 5 참조 (각 순서 특징의 합의-불일치 산점도).
+10개 특징 중 8개가 95\% CI가 0을 제외하는 상관관계를 보여, 판독자 불일치가 합의 수준에 체계적으로 관련됨을 확인한다.
+Pre\_DWI가 가장 강한 관계를 보인다($r = -0.88$, 95\% CI: $[-0.92, -0.85]$), 반면 Post\_cT ($r = -0.09$)와 MERCURY ($r = +0.06$)는 0을 포함하는 CI를 가진다.
+
+그림 5의 검토는 여러 특징이 비선형 패턴(특히 불일치가 중간 합의 값에서 최대가 되고 척도 경계 근처에서 감소하는 역U자형)을 보임을 드러낸다.
+이를 정량화하기 위해, 선형과 이차 산포 모형(\ref{sec:nonlinear}절)을 $R^2$로 비교한다.
+표 11 참조: Fibrosis (Var~B)와 Post\_restriction (Var~K)이 가장 큰 이득을 보이며($\Delta R^2 > 0.60$), 이차 모형이 합의-불일치 분산의 69.5\%와 67.9\%를 각각 설명하는 반면, 선형 모형에서는 8.5\%와 7.6\%이다.
+모든 10개 특징이 $\hat\alpha_2 < 0$을 가져 역U자형 경계 효과와 일관되며, 이차 항은 10개 특징 중 9개에서 통계적으로 유의하다($p < 0.01$).
+
+\subsubsection{모형 비교}
+
+표 10 참조 (PRIMED, CD~GL, C~LASSO의 변수 선택 비교).
+PRIMED는 두 순서 특징을 선택한다: Fibrosis 등급 (Var~B; $\hat\beta = -1.00$, $\hat\gamma = 0.09$)과 Pre\_DWI (Var~F; $\hat\beta = 0.73$, $\hat\gamma = -0.14$).
+CD~GL은 세 변수를 선택한다: Fibrosis 등급 (Var~B), ESGAR (Var~A), 이진 특징 split scar (Var~C).
+Var~F는 PRIMED에 의해 선택되지만 CD~GL이나 C~LASSO에 의해서는 선택되지 않는다; 반대로, Var~A와 Var~C는 CD~GL과 C~LASSO 모두에 의해 선택되지만 PRIMED에서는 탈락한다.
+
+표~\ref{tab:app_coefs}에서 추정된 계수를 요약하며, 대응하는 적합 모형은 다음과 같다:
+\begin{align*}
+  \text{PRIMED (선형):} \quad \hat p_i &= \mathrm{logit}^{-1}\!\bigl(\hat\beta_0 + \hat\beta_B\,\bar X_{i,B} + \hat\gamma_B\,\tilde S_{i,B} + \hat\beta_F\,\bar X_{i,F} + \hat\gamma_F\,\tilde S_{i,F}\bigr), \\
+  \text{CD\,GL:} \quad \hat p_i &= \mathrm{logit}^{-1}\!\bigl(\hat\beta_0 + \hat\beta_B\,\bar X_{i,B} + \hat\gamma_B\, S_{i,B} + \hat\beta_A\,\bar X_{i,A} + \hat\gamma_A\, S_{i,A} + \hat\delta_C\,\bar X_{i,C}\bigr), \\
+  \text{C\,LASSO:} \quad \hat p_i &= \mathrm{logit}^{-1}\!\bigl(\hat\beta_0 + \hat\beta_B\,\bar X_{i,B} + \hat\beta_A\,\bar X_{i,A} + \hat\delta_C\,\bar X_{i,C}\bigr),
+\end{align*}
+여기서 $\tilde S_{i,k} = S_{i,k} - \hat\alpha_{0k} - \hat\alpha_k \bar X_{i,k}$는 선형 산포 모형에서의 특징 $k$의 잔차 불일치이다.
+PRIMED는 잔차 불일치 $\tilde S_k$(합의-불일치 의존성을 제거한 후)를, CD~GL은 합의와 함께 원시 불일치 $S_k$를, C~LASSO는 합의 채널만을 사용한다.
+
+표 11 참조 (훈련 및 외부 검증 AUC).
+예측 성능은 ROC 곡선 아래 면적(AUC)으로 측정된다: 훈련 AUC는 각 방법의 적합 확률을 사용하여 기관 1($n = 50$)에서, 외부 AUC는 훈련된 모형을 재적합 없이 보류 기관에 적용하여 기관 2--3($n = 99$)에서 계산된다.
+훈련 AUC는 방법 간에 유사하다($0.865$--$0.871$).
+CD~GL이 가장 높은 외부 AUC($0.782$)를 달성하며, C~LASSO($0.767$)와 PRIMED($0.753$)가 그 뒤를 잇는다.
+
+선택된 특징의 합의-불일치 관계가 진실한 것인지 검증하기 위해, 각 선택 특징에 대해 $S_k$를 $\bar X_k$에 대한 별도의 OLS 회귀를 적합한다.
+두 특징 모두 유의한 산포 기울기를 보인다: Var~F ($\hat\alpha_{\mathrm{OLS}} = -1.54$, $p < 0.001$) 및 Var~B ($\hat\alpha_{\mathrm{OLS}} = -0.17$, $p = 0.040$), 이 연결이 결합 추정의 인위적 결과가 아닌 실재함을 확인한다.
+
+Var~F의 OLS 추정치($\hat\alpha_{\mathrm{OLS}} = -1.54$)는 PRIMED 결합 추정치($\hat\alpha = -0.46$)와 상당히 다르다.
+이 차이는 \ref{sec:optimization}절에서 기술한 결합 경사도 메커니즘의 직접적 실증 증거를 제공한다: $\hat\gamma_F \neq 0$이므로 결과 손실이 $\hat\alpha_F$를 OLS 해로부터 산포 및 결과 목적함수를 공동으로 최적화하는 방향으로 끌어당긴다.
+$|\hat\gamma_B|$가 작은($0.09$) Var~B의 경우, PRIMED 추정치($\hat\alpha = -0.17$)는 OLS 값과 거의 일치하며, 이는 $\gamma_k \approx 0$일 때 결합 경사도가 소멸한다는 이론적 예측과 부합한다.
+
+Var~F (Pre\_DWI)는 별도의 논의가 필요하다.
+PRIMED의 벌칙 추정은 잘 정의된 group 노름 ($\|(\hat\beta, \hat\gamma)\|_2 = 0.75$)으로 이 특징을 선택하며, 합의와 잔차 불일치 채널 모두를 통해 결과 관련 정보를 담고 있음을 보여준다.
+그러나 비벌칙 재적합에서는 거의 완벽한 합의-불일치 상관($r = -0.88$)이 $\bar X_k$와 $\tilde S_k$ 사이에 다중공선성을 유발하여 개별 계수의 표준 오차가 팽창한다.
+선택과 추정 안정성 사이의 이러한 구별은 예상되는 것이다: PRIMED의 group 벌칙은 선택 중 계수 추정치를 정규화하는 반면, 비벌칙 재적합은 고유한 다중공선성을 노출시킨다.
+선택 자체는 신뢰할 수 있으며; 불안정한 것은 정규화가 없을 때 효과를 $\beta_k$와 $\gamma_k$로 분해하는 것이다.
+Pre\_DWI의 선택은 아래 민감도 분석에서 재검토되며, 이차 산포 모형이 그 겉보기 불일치 신호가 대부분 선형 모형 오명세(misspecification)의 산물임을 드러낸다.
+
+\subsubsection{민감도 분석: 이차 산포 모형}
+
+표 11에서 문서화된 비선형 패턴을 고려하여, 동일한 훈련 데이터에서 이차 산포 모형~\eqref{eq:quad_disp}으로 PRIMED를 재적합한다.
+표 14 참조 (결과 비교).
+역U자형 경계 효과를 포착하는 더 유연한 산포 모형을 사용하여, 이차 PRIMED는 Fibrosis (Var~B; $\hat\beta = -0.63$, $\hat\gamma = -0.05$)만을 선택한다. 이는 선형 사양에서 세 방법 모두에 의해 선택된 특징이다.
+적합된 모형은 다음과 같다:
+\[
+  \text{PRIMED (이차):} \quad \hat p_i = \mathrm{logit}^{-1}\!\bigl(\hat\beta_0 + \hat\beta_B\,\bar X_{i,B} + \hat\gamma_B\,\tilde S_{i,B}^{\mathrm{quad}}\bigr),
+\]
+여기서 $\tilde S_{i,B}^{\mathrm{quad}} = S_{i,B} - \hat\alpha_{0B} - \hat\alpha_{1B}\,\bar X_{i,B} - \hat\alpha_{2B}\,\bar X_{i,B}^2$는 이차 산포 모형에서의 잔차 불일치이다.
+선형 PRIMED가 선택한 Pre\_DWI (Var~F)는 더 이상 유지되지 않는다: 이차 산포 모형이 합의-불일치 분산의 99.2\%를 설명하여(표 11), 결과를 예측하는 데 사용할 잔차 불일치가 무시할 수 있는 수준으로 남기 때문이다.
+
+단일 특징만 사용함에도, 이차 PRIMED는 외부 AUC $0.766$을 달성하며, 이는 본질적으로 C~LASSO ($0.767$, 3개 변수)에 필적하고 CD~GL ($0.782$)과의 격차를 좁힌다.
+더 간결한 모형은 소규모 훈련 표본에서의 과적합 위험도 피한다: 훈련-외부 AUC 격차가 이차 PRIMED의 경우 $0.086$인 반면 선형 PRIMED의 경우 $0.112$이다.
+이 결과는 더 잘 지정된 산포 모형이 예측 성능을 희생하지 않고 변수 선택의 간결성을 향상시킬 수 있음을 보여준다.
+
+%%-------------------------------------------------------------------
+\subsection{적용: LIDC-IDRI 폐 결절 radiomics}\label{sec:lidc}
+%%-------------------------------------------------------------------
+
+\subsubsection{데이터 및 설계}
+
+고차원 radiomics 환경에서 PRIMED를 검증하기 위해, Lung Image Database Consortium and Image Database Resource Initiative (LIDC-IDRI) 데이터셋에 적용한다.
+데이터셋은 695명의 환자에서 1,390개의 폐 결절로 구성되며, 각각 3--4명의 영상의학과 전문의가 주석을 달았다.
+CT windowing $[-1000, 400]$ Hounsfield units (HU)를 적용하여 연조직 아티팩트를 제거하고 스캔 간 복셀 강도 범위를 표준화하였다.
+각 결절에 대해 $K = 107$개의 PyRadiomics 특징을 개별 영상의학과 전문의 분할에서 추출하여, \ref{sec:data}절에서 설명한 바와 같이 합의와 불일치 요약이 계산된 multi-reader radiomics 행렬을 생성하였다.
+이진 결과 변수는 악성 여부(악성 vs.\ 양성)이며, 진단 정보로부터 도출된다.
+
+예측 성능은 중첩 교차검증(nested cross-validation)으로 평가하였다: 층화 10겹 외부 CV가 일반화 성능을 평가하고, 각 외부 훈련 겹 내에서 층화 5겹 내부 CV가 $\lambda$를 선택한다(\ref{sec:lambda_cv}절에 기술된 동일한 데이터 기반 경로 및 이탈도 기준 사용).
+세 방법 모두 동일한 중첩 구조를 사용하였다: PRIMED는 데이터 기반 $\lambda$ 경로에 대한 5겹 내부 CV를, CD~GL과 C~LASSO는 각각 \texttt{grpreg}와 \texttt{glmnet}의 기본 교차검증 절차(5겹)를 사용하였다.
+이 설계는 외부 검정 겹의 정보가 $\lambda$ 선택에 유출되지 않도록 하며, 모든 방법이 동일한 훈련/검정 분할에서 비교되도록 보장한다.
+
+직장암 적용(\ref{sec:application}절)은 다른 평가 전략을 사용한다: 단일 센터에서 훈련하고 보류된 센터에서 외부 검증하며, 다기관 설계가 자연스러운 외부 검증 세트를 제공하므로 외부 CV 없이 수행한다.
+
+\subsubsection{예측 및 변수 선택}
+
+표 15 참조 (10겹 CV AUC 및 선택된 특징 수).
+세 방법 모두 비슷한 예측 성능을 달성한다(AUC $0.898$--$0.905$). 쌍별 차이는 겹 간 방법 내 표준편차($\mathrm{SD} \approx 0.033$--$0.035$)보다 작다.
+PRIMED는 평균적으로 가장 많은 특징을 선택한다($66.4$개), CD~GL($30.7$개)과 C~LASSO($23.2$개)가 그 뒤를 잇는다.
+
+\subsubsection{변수 선택 안정성}
+
+점 예측을 넘어서, Jaccard 지수를 사용하여 CV 겹 간 변수 선택의 일관성을 평가한다: 두 선택된 특징 집합 $A$와 $B$에 대해, $J(A, B) = |A \cap B| / |A \cup B|$.
+Jaccard 지수는 $\binom{10}{2} = 45$개의 모든 겹 쌍에 대해 평균한다.
+표 16 참조.
+PRIMED가 가장 높은 선택 안정성을 달성한다($J = 0.795$, SD $0.051$), CD~GL($0.688$, SD $0.053$)과 C~LASSO($0.560$, SD $0.126$)를 상당히 초과한다.
+높은 Jaccard 지수는 PRIMED의 선택된 특징 집합이 훈련 겹의 선택에 대해 강건함을 나타내며, 이는 재현성이 필수적인 임상 배치에서 바람직한 특성이다.
+
+%%===================================================================
+\section{고찰}\label{sec:discussion}
+%%===================================================================
+
+PRIMED는 모든 시뮬레이션 시나리오에서 변수 선택(F1)과 예측(AUC)에서 CD~GL 및 C~LASSO를 일관되게 능가한다.
+이 장점은 불일치가 결과에 기여할 때(DGP~1, $\gamma \neq 0$)와 기여하지 않을 때(DGP~2, $\gamma = 0$) 모두 존재한다.
+DGP~2에서, 모든 특징에 대해 $\gamma_k = 0$이므로 C~LASSO가 원칙적으로 합의만으로 전체 신호를 포착할 수 있지만, PRIMED는 여전히 더 높은 PPV를 달성한다.
+그 이유는 $\alpha_k \neq 0$이지만 $\beta_k = \gamma_k = 0$인 특징(잡음 변수)이 관찰된 불일치 $S_k$를 팽창시키기 때문이다; $(\beta_k, \gamma_k)$와 $S_k$를 함께 벌칙하는 CD~GL은 큰 산포 효과를 근거로 이러한 특징을 선택할 수 있다.
+PRIMED의 장점은 세 가지 설계 선택의 협력에서 비롯된다.
+
+
+$\tilde S_{ik} = S_{ik} - \alpha_{0k} - \alpha_k \bar X_{ik}$를 통해 합의-불일치 관계를 모형화하고 잔차만을 결과 모형에 투입함으로써, PRIMED는 큰 산포 효과를 가지지만 결과 관련성이 없는 특징(잡음 변수)이 선택되는 것을 방지한다.
+원시 $S_k$를 투입하는 CD~GL은 산포 구조와 결과 신호를 혼동하며, C~LASSO는 불일치 채널을 완전히 버려 피험자별 잡음이 클 때($\tau \geq 0.6$) 붕괴한다.
+
+
+$\alpha_k$가 비벌칙이므로, 합의-불일치 관계는 특징 $k$의 선택 여부와 무관하게 벌칙 유도 편향 없이 추정된다.
+변수 선택은 오직 $\|(\beta_k, \gamma_k)\|_2$에 의해 주도되어, 비자명한 $\alpha_k$를 가진 비활성 특징이 거짓 양성을 유발하지 않고 산포 모형에 흡수된다.
+$K = 100$에서 PRIMED는 CD~GL 대비 일관되게 높은 F1을 달성하며, 주로 높은 PPV에 의해 주도된다.
+
+
+$\mathcal{L}_{\mathrm{out}}$가 $\tilde S_{ik}$를 통해 $\alpha_k$에 의존하므로, 산포 매개변수는 결과 주도 경사도 갱신을 받는다.
+직장암 데이터가 직접 증거를 제공한다: Pre\_DWI ($\hat\gamma \neq 0$)에서 PRIMED 추정 $\hat\alpha = -0.46$는 OLS 추정 $\hat\alpha_{\mathrm{OLS}} = -1.54$와 크게 다른 반면, Fibrosis ($\hat\gamma \approx 0$)에서는 일치한다.
+
+
+시뮬레이션에서 Jaccard 지수는 모든 차원에서 최고이며($K = 20/50/100$에서 $0.507/0.352/0.228$), 격차는 고차원에서 확대된다.
+LIDC-IDRI ($K = 107$)에서 PRIMED는 Jaccard $0.795$를 달성하며 CD~GL($0.688$), C~LASSO($0.560$)를 상회한다.
+
+
+두 적용은 서로 다른 영상 양식(MRI vs.\ CT), 임상 과제(직장암 pCR vs.\ 폐 결절 악성), 특징 유형(순서 점수 vs.\ 연속 radiomics), 차원($K = 14$ vs.\ $K = 107$)에 걸쳐 있어, 프레임워크가 단일 임상 맥락을 넘어 일반화됨을 시사한다.
+
+
+결합 목적함수는 비볼록이나, LIDC-IDRI 데이터에서의 실증 경로 분석은 엄격하게 단조적인 정규화 경로를 보인다(\ref{sec:optimization}절).
+직장암 훈련 표본($n = 50$)이 작아 PRIMED의 외부 AUC($0.753$)가 CD~GL($0.782$)보다 낮다; 더 큰 표본의 시뮬레이션은 일관되게 PRIMED를 선호한다.
+이차 산포 확장(\ref{sec:quad_sensitivity}절)은 역U자형 패턴의 모형 사양을 향상시키나, 스플라인이나 고차 다항식 등 더 유연한 사양은 탐구가 필요하다.
+근위 경사 알고리즘은 기성 group LASSO 솔버보다 느리며, 향후 생존 또는 다중 클래스 결과로의 확장이 가능하다.
+
+%%===================================================================
+\section{결론}\label{sec:conclusions}
+%%===================================================================
+
+본 연구에서는 합의, 불일치, 그리고 이들의 구조적 관계를 단일 벌칙 목적함수로 통합하는 multi-reader 영상 데이터를 위한 결합 손실 프레임워크인 PRIMED를 제안하였다.
+잔차 불일치 공식은 불일치를 결과 모형에 투입하기 전에 합의-불일치 의존성을 제거하며, 선택적 벌칙은 산포 매개변수를 비벌칙으로 남겨두고 결과 계수만으로 변수 선택을 주도한다.
+시뮬레이션은 다양한 차원, 잡음 수준, 신호 강도에서 일관된 변수 선택 정확도와 안정성의 우수성을 보여준다.
+두 적용이 프레임워크를 검증한다: 직장암 MRI ($K = 14$)에서 PRIMED는 경쟁 방법이 놓치는 임상적으로 의미 있는 신호를 식별하고, LIDC-IDRI 폐 결절 radiomics ($K = 107$)에서 비슷한 예측과 함께 상당히 높은 선택 안정성(Jaccard $0.795$ vs.\ $0.688$ 및 $0.560$)을 달성한다.
+
+\end{document}
