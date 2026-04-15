@@ -3,7 +3,8 @@
 # Dispersion model: S_ik = α0k + α1k * X_bar_ik + α2k * X_bar_ik^2 + ε_ik
 # =============================================================================
 
-library(tidyverse)
+library(dplyr)
+library(tidyr)
 library(readxl)
 library(grpreg)
 library(pROC)
@@ -52,7 +53,7 @@ cd_data <- data_clean %>%
     )),
     .groups = "drop"
   ) %>%
-  mutate(across(ends_with("_disp"), ~ replace_na(.x, 0)))
+  mutate(across(ends_with("_disp"), ~ ifelse(is.na(.x), 0, .x)))
 
 train_data <- cd_data %>% filter(Center == 1)
 test_data  <- cd_data %>% filter(Center %in% c(2, 3))
@@ -238,10 +239,33 @@ quadratic_primed_predict <- function(fit, X_bar, S, X_bin = NULL) {
 # 4. CV 함수 (linear / quadratic 공통)
 # =============================================================================
 
+compute_lambda_max <- function(X_bar, S, Y, X_bin = NULL) {
+  n <- length(Y); K <- ncol(X_bar)
+  J <- if (!is.null(X_bin)) ncol(X_bin) else 0
+  alpha0 <- colMeans(S)
+  alpha  <- sapply(1:K, function(k) cov(X_bar[,k], S[,k]) / var(X_bar[,k]))
+  S_tilde <- S - rep(1, n) %o% alpha0 - X_bar * rep(1, n) %o% alpha
+  y_bar <- max(min(mean(Y), 1 - 1e-10), 1e-10)
+  L_out_null <- -(y_bar * log(y_bar) + (1 - y_bar) * log(1 - y_bar))
+  r <- rep(y_bar, n) - Y
+  grad_beta  <- as.vector(t(X_bar) %*% r) / (n * L_out_null)
+  grad_gamma <- as.vector(t(S_tilde) %*% r) / (n * L_out_null)
+  group_norms <- sqrt(grad_beta^2 + grad_gamma^2)
+  lam_max <- max(group_norms) / sqrt(2)
+  if (J > 0) {
+    grad_delta <- as.vector(t(X_bin) %*% r) / (n * L_out_null)
+    lam_max <- max(lam_max, max(abs(grad_delta)))
+  }
+  lam_max
+}
+
 primed_cv <- function(fit_fn, predict_fn, X_bar, S, Y, X_bin = NULL,
-                      lambda_grid = seq(0.01, 3.0, length.out = 100),
+                      n_lambda = 100, eps_ratio = 0.01,
                       n_folds = 5, seed = 42) {
   set.seed(seed); n <- length(Y)
+  lam_max <- compute_lambda_max(X_bar, S, Y, X_bin)
+  lambda_grid <- exp(seq(log(lam_max), log(lam_max * eps_ratio), length.out = n_lambda))
+
   idx1 <- which(Y == 1); idx0 <- which(Y == 0)
   fold_ids <- rep(0, n)
   fold_ids[idx1] <- rep(1:n_folds, length.out = length(idx1))[sample(length(idx1))]
@@ -263,7 +287,8 @@ primed_cv <- function(fit_fn, predict_fn, X_bar, S, Y, X_bin = NULL,
   }
   best_idx <- which.min(cv_dev)
   best_fit <- fit_fn(X_bar, S, Y, X_bin, lambda_grid[best_idx])
-  list(fit = best_fit, lambda = lambda_grid[best_idx], cv_deviance = cv_dev)
+  list(fit = best_fit, lambda = lambda_grid[best_idx], cv_deviance = cv_dev,
+       fold_ids = fold_ids)
 }
 
 # =============================================================================
@@ -274,17 +299,26 @@ ordinal_cons_vars <- paste0(ordinal_vars, "_cons")
 ordinal_disp_vars <- paste0(ordinal_vars, "_disp")
 binary_cons_vars  <- paste0(binary_vars, "_cons")
 
-X_bar_train <- as.matrix(train_data[, ordinal_cons_vars])
-S_train     <- as.matrix(train_data[, ordinal_disp_vars])
-X_bin_train <- as.matrix(train_data[, binary_cons_vars])
-y_train     <- train_data$pCR
+X_bar_train_raw <- as.matrix(train_data[, ordinal_cons_vars])
+S_train_raw     <- as.matrix(train_data[, ordinal_disp_vars])
+X_bin_train     <- as.matrix(train_data[, binary_cons_vars])
+y_train         <- train_data$pCR
 
-X_bar_test <- as.matrix(test_data[, ordinal_cons_vars])
-S_test     <- as.matrix(test_data[, ordinal_disp_vars])
-X_bin_test <- as.matrix(test_data[, binary_cons_vars])
-y_test     <- test_data$pCR
+X_bar_test_raw <- as.matrix(test_data[, ordinal_cons_vars])
+S_test_raw     <- as.matrix(test_data[, ordinal_disp_vars])
+X_bin_test     <- as.matrix(test_data[, binary_cons_vars])
+y_test         <- test_data$pCR
 
-lambda_grid <- seq(0.01, 3.0, length.out = 30)
+# Standardize
+X_bar_mean <- colMeans(X_bar_train_raw); X_bar_sd <- apply(X_bar_train_raw, 2, sd)
+X_bar_sd[X_bar_sd == 0] <- 1
+S_mean <- colMeans(S_train_raw); S_sd <- apply(S_train_raw, 2, sd)
+S_sd[S_sd == 0] <- 1
+
+X_bar_train <- scale(X_bar_train_raw, center = X_bar_mean, scale = X_bar_sd)
+S_train     <- scale(S_train_raw, center = S_mean, scale = S_sd)
+X_bar_test  <- scale(X_bar_test_raw, center = X_bar_mean, scale = X_bar_sd)
+S_test      <- scale(S_test_raw, center = S_mean, scale = S_sd)
 
 # =============================================================================
 # 6. 두 모델 Fitting
@@ -295,7 +329,7 @@ cat("  LINEAR PRIMED 적용 중...\n")
 cat(strrep("=", 70), "\n")
 res_lin <- primed_cv(linear_primed_fit, linear_primed_predict,
                      X_bar_train, S_train, y_train, X_bin_train,
-                     lambda_grid, n_folds = 5, seed = 42)
+                     n_folds = 5, seed = 42)
 cat(sprintf("Best lambda: %.3f, Converged: %s (iter=%d)\n",
             res_lin$lambda, res_lin$fit$converged, res_lin$fit$iter))
 
@@ -304,7 +338,7 @@ cat("  QUADRATIC PRIMED 적용 중...\n")
 cat(strrep("=", 70), "\n")
 res_quad <- primed_cv(quadratic_primed_fit, quadratic_primed_predict,
                       X_bar_train, S_train, y_train, X_bin_train,
-                      lambda_grid, n_folds = 5, seed = 42)
+                      n_folds = 5, seed = 42)
 cat(sprintf("Best lambda: %.3f, Converged: %s (iter=%d)\n",
             res_quad$lambda, res_quad$fit$converged, res_quad$fit$iter))
 
@@ -416,18 +450,18 @@ all_vars <- c(binary_cons_vars, as.vector(rbind(ordinal_cons_vars, ordinal_disp_
 groups   <- c(1:4, rep(5:14, each = 2))
 X_train_gl <- as.matrix(train_data[, all_vars])
 X_test_gl  <- as.matrix(test_data[, all_vars])
-set.seed(42)
+fold_ids <- res_lin$fold_ids
 cv_gl <- cv.grpreg(X_train_gl, y_train, group = groups, family = "binomial",
-                   penalty = "grLasso", nfolds = 10)
+                   penalty = "grLasso", nfolds = 5, fold = fold_ids)
 auc_gl_train <- auc(roc(y_train, as.vector(predict(cv_gl, X_train_gl, type="response", lambda=cv_gl$lambda.min)), quiet=TRUE))
 auc_gl_test  <- auc(roc(y_test, as.vector(predict(cv_gl, X_test_gl, type="response", lambda=cv_gl$lambda.min)), quiet=TRUE))
 
-# Consensus LASSO
+# Consensus LASSO (same 5-fold assignments)
 cons_vars <- c(binary_cons_vars, ordinal_cons_vars)
 X_train_cl <- as.matrix(train_data[, cons_vars])
 X_test_cl  <- as.matrix(test_data[, cons_vars])
-set.seed(42)
-cv_cl <- cv.glmnet(X_train_cl, y_train, family = "binomial", alpha = 1, nfolds = 10)
+cv_cl <- cv.glmnet(X_train_cl, y_train, family = "binomial", alpha = 1,
+                   nfolds = 5, foldid = fold_ids)
 auc_cl_train <- auc(roc(y_train, as.vector(predict(cv_cl, X_train_cl, type="response", s="lambda.min")), quiet=TRUE))
 auc_cl_test  <- auc(roc(y_test, as.vector(predict(cv_cl, X_test_cl, type="response", s="lambda.min")), quiet=TRUE))
 

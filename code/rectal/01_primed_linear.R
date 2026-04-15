@@ -3,7 +3,8 @@
 # CD Group LASSO, Consensus LASSO와 비교
 # =============================================================================
 
-library(tidyverse)
+library(dplyr)
+library(tidyr)
 library(readxl)
 library(grpreg)
 library(pROC)
@@ -162,11 +163,47 @@ primed_predict <- function(fit, X_bar, S, X_bin = NULL) {
 # 3. CV를 통한 lambda 선택
 # =============================================================================
 
+compute_lambda_max <- function(X_bar, S, Y, X_bin = NULL) {
+  n <- length(Y); K <- ncol(X_bar)
+  J <- if (!is.null(X_bin)) ncol(X_bin) else 0
+
+  # OLS alpha for dispersion model
+  alpha0 <- colMeans(S)
+  alpha  <- sapply(1:K, function(k) {
+    cov(X_bar[,k], S[,k]) / var(X_bar[,k])
+  })
+  S_tilde <- S - rep(1, n) %o% alpha0 - X_bar * rep(1, n) %o% alpha
+
+  # Intercept-only outcome model
+  y_bar <- mean(Y)
+  y_bar <- max(min(y_bar, 1 - 1e-10), 1e-10)
+  L_out_null <- -(y_bar * log(y_bar) + (1 - y_bar) * log(1 - y_bar))
+  r <- rep(y_bar, n) - Y
+
+  # Group gradient norms for (beta_k, gamma_k)
+  grad_beta  <- as.vector(t(X_bar) %*% r) / (n * L_out_null)
+  grad_gamma <- as.vector(t(S_tilde) %*% r) / (n * L_out_null)
+  group_norms <- sqrt(grad_beta^2 + grad_gamma^2)
+
+  lam_max <- max(group_norms) / sqrt(2)
+
+  # Also check binary variables
+  if (J > 0) {
+    grad_delta <- as.vector(t(X_bin) %*% r) / (n * L_out_null)
+    lam_max <- max(lam_max, max(abs(grad_delta)))
+  }
+  lam_max
+}
+
 primed_cv <- function(X_bar, S, Y, X_bin = NULL,
-                      lambda_grid = seq(0.01, 3.0, length.out = 100),
+                      n_lambda = 100, eps_ratio = 0.01,
                       n_folds = 5, seed = 42) {
   set.seed(seed)
   n <- length(Y)
+
+  # Data-driven log-spaced lambda grid
+  lam_max <- compute_lambda_max(X_bar, S, Y, X_bin)
+  lambda_grid <- exp(seq(log(lam_max), log(lam_max * eps_ratio), length.out = n_lambda))
 
   # Stratified folds
   idx1 <- which(Y == 1)
@@ -208,7 +245,8 @@ primed_cv <- function(X_bar, S, Y, X_bin = NULL,
   best_idx <- which.min(cv_dev)
   best_fit <- primed_fit(X_bar, S, Y, X_bin, lambda_grid[best_idx])
 
-  list(fit = best_fit, lambda = lambda_grid[best_idx], cv_deviance = cv_dev)
+  list(fit = best_fit, lambda = lambda_grid[best_idx], cv_deviance = cv_dev,
+       fold_ids = fold_ids)
 }
 
 # =============================================================================
@@ -219,22 +257,34 @@ ordinal_cons_vars <- paste0(ordinal_vars, "_cons")
 ordinal_disp_vars <- paste0(ordinal_vars, "_disp")
 binary_cons_vars  <- paste0(binary_vars, "_cons")
 
-# Training data
-X_bar_train <- as.matrix(train_data[, ordinal_cons_vars])
-S_train     <- as.matrix(train_data[, ordinal_disp_vars])
-X_bin_train <- as.matrix(train_data[, binary_cons_vars])
-y_train     <- train_data$pCR
+# Training data (raw)
+X_bar_train_raw <- as.matrix(train_data[, ordinal_cons_vars])
+S_train_raw     <- as.matrix(train_data[, ordinal_disp_vars])
+X_bin_train     <- as.matrix(train_data[, binary_cons_vars])
+y_train         <- train_data$pCR
 
-# Test data
-X_bar_test <- as.matrix(test_data[, ordinal_cons_vars])
-S_test     <- as.matrix(test_data[, ordinal_disp_vars])
-X_bin_test <- as.matrix(test_data[, binary_cons_vars])
-y_test     <- test_data$pCR
+# Test data (raw)
+X_bar_test_raw <- as.matrix(test_data[, ordinal_cons_vars])
+S_test_raw     <- as.matrix(test_data[, ordinal_disp_vars])
+X_bin_test     <- as.matrix(test_data[, binary_cons_vars])
+y_test         <- test_data$pCR
 
-# PRIMED with CV
+# Standardize predictors (zero mean, unit variance from training set)
+X_bar_mean <- colMeans(X_bar_train_raw)
+X_bar_sd   <- apply(X_bar_train_raw, 2, sd)
+X_bar_sd[X_bar_sd == 0] <- 1  # avoid division by zero
+S_mean     <- colMeans(S_train_raw)
+S_sd       <- apply(S_train_raw, 2, sd)
+S_sd[S_sd == 0] <- 1
+
+X_bar_train <- scale(X_bar_train_raw, center = X_bar_mean, scale = X_bar_sd)
+S_train     <- scale(S_train_raw, center = S_mean, scale = S_sd)
+X_bar_test  <- scale(X_bar_test_raw, center = X_bar_mean, scale = X_bar_sd)
+S_test      <- scale(S_test_raw, center = S_mean, scale = S_sd)
+
+# PRIMED with CV (data-driven log-spaced lambda grid)
 cat("\n=== PRIMED 적용 중... ===\n")
 primed_res <- primed_cv(X_bar_train, S_train, y_train, X_bin_train,
-                        lambda_grid = seq(0.01, 3.0, length.out = 100),
                         n_folds = 5, seed = 42)
 
 cat(sprintf("Best lambda: %.3f\n", primed_res$lambda))
@@ -293,28 +343,29 @@ pred_primed_test  <- as.vector(primed_predict(fit, X_bar_test, S_test, X_bin_tes
 auc_primed_train  <- auc(roc(y_train, pred_primed_train, quiet = TRUE))
 auc_primed_test   <- auc(roc(y_test, pred_primed_test, quiet = TRUE))
 
-# CD Group LASSO (재현)
+# CD Group LASSO (standardized, same 5-fold assignments)
 all_vars <- c(binary_cons_vars, as.vector(rbind(ordinal_cons_vars, ordinal_disp_vars)))
 groups   <- c(1:4, rep(5:14, each = 2))
 
 X_train_gl <- as.matrix(train_data[, all_vars])
 X_test_gl  <- as.matrix(test_data[, all_vars])
 
-set.seed(42)
+# Use same fold assignments as PRIMED
+fold_ids <- primed_res$fold_ids
 cv_gl <- cv.grpreg(X_train_gl, y_train, group = groups, family = "binomial",
-                   penalty = "grLasso", nfolds = 10)
+                   penalty = "grLasso", nfolds = 5, fold = fold_ids)
 pred_gl_train <- predict(cv_gl, X_train_gl, type = "response", lambda = cv_gl$lambda.min)
 pred_gl_test  <- predict(cv_gl, X_test_gl, type = "response", lambda = cv_gl$lambda.min)
 auc_gl_train  <- auc(roc(y_train, as.vector(pred_gl_train), quiet = TRUE))
 auc_gl_test   <- auc(roc(y_test, as.vector(pred_gl_test), quiet = TRUE))
 
-# Consensus LASSO
+# Consensus LASSO (standardized, same 5-fold assignments)
 cons_vars <- c(binary_cons_vars, ordinal_cons_vars)
 X_train_cl <- as.matrix(train_data[, cons_vars])
 X_test_cl  <- as.matrix(test_data[, cons_vars])
 
-set.seed(42)
-cv_cl <- cv.glmnet(X_train_cl, y_train, family = "binomial", alpha = 1, nfolds = 10)
+cv_cl <- cv.glmnet(X_train_cl, y_train, family = "binomial", alpha = 1,
+                   nfolds = 5, foldid = fold_ids)
 pred_cl_train <- predict(cv_cl, X_train_cl, type = "response", s = "lambda.min")
 pred_cl_test  <- predict(cv_cl, X_test_cl, type = "response", s = "lambda.min")
 auc_cl_train  <- auc(roc(y_train, as.vector(pred_cl_train), quiet = TRUE))
